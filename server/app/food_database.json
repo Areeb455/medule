@@ -1,0 +1,1315 @@
+{
+  "apple_pie": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "baby_back_ribs": {
+    "tags": [
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_B12",
+      "HIGH_IRON"
+    ]
+  },
+  "baklava": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "beef_carpaccio": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON"
+    ]
+  },
+  "beef_tartare": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "beet_salad": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM",
+      "HIGH_IRON"
+    ]
+  },
+  "beignets": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "bibimbap": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM",
+      "HIGH_IRON"
+    ]
+  },
+  "bread_pudding": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "breakfast_burrito": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_B12",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "bruschetta": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_SODIUM"
+    ]
+  },
+  "caesar_salad": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "cannoli": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "caprese_salad": {
+    "tags": [
+      "HIGH_CALCIUM",
+      "HIGH_VITAMIN_D"
+    ]
+  },
+  "carrot_cake": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "ceviche": {
+    "tags": [
+      "HIGH_OMEGA_3",
+      "HIGH_B12",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "cheese_plate": {
+    "tags": [
+      "HIGH_CALCIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_SODIUM",
+      "HIGH_B12"
+    ]
+  },
+  "cheesecake": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "chicken_curry": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "chicken_quesadilla": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "chicken_wings": {
+    "tags": [
+      "HIGH_SATURATED_FAT",
+      "HIGH_SODIUM",
+      "HIGH_B12"
+    ]
+  },
+  "chocolate_cake": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "chocolate_mousse": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "churros": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "clam_chowder": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_B12",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "club_sandwich": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_B12"
+    ]
+  },
+  "crab_cakes": {
+    "tags": [
+      "HIGH_OMEGA_3",
+      "HIGH_B12",
+      "HIGH_SODIUM"
+    ]
+  },
+  "creme_brulee": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "croque_madame": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALCIUM",
+      "HIGH_B12"
+    ]
+  },
+  "cup_cakes": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "deviled_eggs": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "donuts": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "dumplings": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_GLYCEMIC_INDEX"
+    ]
+  },
+  "edamame": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM",
+      "HIGH_CALCIUM",
+      "HIGH_IRON"
+    ]
+  },
+  "eggs_benedict": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_B12",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "escargots": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "falafel": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "filet_mignon": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "fish_and_chips": {
+    "tags": [
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT",
+      "HIGH_SODIUM",
+      "HIGH_OMEGA_3"
+    ]
+  },
+  "foie_gras": {
+    "tags": [
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_B12",
+      "HIGH_IRON"
+    ]
+  },
+  "french_fries": {
+    "tags": [
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT",
+      "HIGH_SODIUM",
+      "HIGH_GLYCEMIC_INDEX"
+    ]
+  },
+  "french_onion_soup": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "french_toast": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_B12"
+    ]
+  },
+  "fried_calamari": {
+    "tags": [
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SODIUM"
+    ]
+  },
+  "fried_rice": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SODIUM"
+    ]
+  },
+  "frozen_yogurt": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "garlic_bread": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SODIUM"
+    ]
+  },
+  "gnocchi": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "greek_salad": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM",
+      "HIGH_CALCIUM",
+      "HIGH_SODIUM"
+    ]
+  },
+  "grilled_cheese_sandwich": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALCIUM",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "grilled_salmon": {
+    "tags": [
+      "HIGH_OMEGA_3",
+      "HIGH_B12",
+      "HIGH_VITAMIN_D",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "guacamole": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "gyoza": {
+    "tags": [
+      "HIGH_SODIUM"
+    ]
+  },
+  "hamburger": {
+    "tags": [
+      "HIGH_SATURATED_FAT",
+      "HIGH_SODIUM",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_B12"
+    ]
+  },
+  "hot_and_sour_soup": {
+    "tags": [
+      "HIGH_SODIUM"
+    ]
+  },
+  "hot_dog": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "huevos_rancheros": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "hummus": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "ice_cream": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "lasagna": {
+    "tags": [
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "lobster_bisque": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_B12"
+    ]
+  },
+  "lobster_roll_sandwich": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_B12",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "macaroni_and_cheese": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALCIUM",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "macarons": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "miso_soup": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "mussels": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_OMEGA_3",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "nachos": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SATURATED_FAT",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "omelette": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_CALCIUM",
+      "HIGH_VITAMIN_D"
+    ]
+  },
+  "onion_rings": {
+    "tags": [
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT",
+      "HIGH_SODIUM"
+    ]
+  },
+  "oysters": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_ZINC",
+      "HIGH_OMEGA_3"
+    ]
+  },
+  "pad_thai": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_GLYCEMIC_INDEX"
+    ]
+  },
+  "paella": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_OMEGA_3"
+    ]
+  },
+  "pancakes": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_B12"
+    ]
+  },
+  "panna_cotta": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "peking_duck": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_B12"
+    ]
+  },
+  "pho": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_B12",
+      "HIGH_IRON"
+    ]
+  },
+  "pizza": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "pork_chop": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "poutine": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "prime_rib": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "pulled_pork_sandwich": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_B12"
+    ]
+  },
+  "ramen": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_B12"
+    ]
+  },
+  "ravioli": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SODIUM",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "red_velvet_cake": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "risotto": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SODIUM"
+    ]
+  },
+  "samosa": {
+    "tags": [
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT",
+      "HIGH_SODIUM"
+    ]
+  },
+  "sashimi": {
+    "tags": [
+      "HIGH_OMEGA_3",
+      "HIGH_B12",
+      "HIGH_VITAMIN_D"
+    ]
+  },
+  "scallops": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_OMEGA_3",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "seaweed_salad": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM",
+      "HIGH_CALCIUM",
+      "HIGH_IRON"
+    ]
+  },
+  "shrimp_and_grits": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_B12",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "spaghetti_bolognese": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_B12",
+      "HIGH_IRON"
+    ]
+  },
+  "spaghetti_carbonara": {
+    "tags": [
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SATURATED_FAT",
+      "HIGH_SODIUM",
+      "HIGH_B12"
+    ]
+  },
+  "spring_rolls": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "steak": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "strawberry_shortcake": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "sushi": {
+    "tags": [
+      "HIGH_OMEGA_3",
+      "HIGH_B12",
+      "HIGH_SODIUM"
+    ]
+  },
+  "tacos": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_FIBER",
+      "HIGH_B12"
+    ]
+  },
+  "takoyaki": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "tiramisu": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "tuna_tartare": {
+    "tags": [
+      "HIGH_OMEGA_3",
+      "HIGH_B12",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "waffles": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "adhirasam": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "aloo_gobi": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM",
+      "HIGH_VITAMIN_D"
+    ]
+  },
+  "aloo_matar": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM",
+      "HIGH_IRON"
+    ]
+  },
+  "aloo_methi": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM",
+      "HIGH_IRON"
+    ]
+  },
+  "aloo_shimla_mirch": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "aloo_tikki": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SODIUM"
+    ]
+  },
+  "aloo_baingan": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "appam": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX"
+    ]
+  },
+  "baby_potato_curry": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "banana_halwa": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "bhatura": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "bhindi_masala": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_CALCIUM",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "biryani": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SODIUM",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_B12"
+    ]
+  },
+  "boondi": {
+    "tags": [
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SODIUM",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "butter_chicken": {
+    "tags": [
+      "HIGH_SATURATED_FAT",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SODIUM",
+      "HIGH_B12"
+    ]
+  },
+  "chak_hao_kheer": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "cham_cham": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "chana_masala": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "chapati": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON"
+    ]
+  },
+  "chhena_kheeri": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM",
+      "HIGH_B12"
+    ]
+  },
+  "chicken_rezala": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_SODIUM"
+    ]
+  },
+  "chicken_tikka": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "chicken_tikka_masala": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_SODIUM",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "chikki": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_IRON",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "dal_baati_churma": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "dal_makhani": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "dal_puri": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_GLYCEMIC_INDEX"
+    ]
+  },
+  "dal_tadka": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "dharwad_pedha": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "doodhpak": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM",
+      "HIGH_B12"
+    ]
+  },
+  "double_ka_meetha": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "dum_aloo": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "gajar_ka_halwa": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_CALCIUM",
+      "HIGH_VITAMIN_D"
+    ]
+  },
+  "gulab_jamun": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "imarti": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "jalebi": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "kachori": {
+    "tags": [
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT",
+      "HIGH_SODIUM"
+    ]
+  },
+  "kadai_paneer": {
+    "tags": [
+      "HIGH_CALCIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_SODIUM"
+    ]
+  },
+  "kadhi_pakoda": {
+    "tags": [
+      "HIGH_SODIUM",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "kalakand": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "karela_bharta": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "lassi": {
+    "tags": [
+      "HIGH_CALCIUM",
+      "HIGH_B12",
+      "HIGH_POTASSIUM",
+      "HIGH_SUGAR"
+    ]
+  },
+  "litti_chokha": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "maach_jhol": {
+    "tags": [
+      "HIGH_OMEGA_3",
+      "HIGH_B12",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "makki_di_roti_sarson_da_saag": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_CALCIUM",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "malapua": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "misi_roti": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON"
+    ]
+  },
+  "misti_doi": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM",
+      "HIGH_B12"
+    ]
+  },
+  "modak": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "mysore_pak": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "naan": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SODIUM"
+    ]
+  },
+  "palak_paneer": {
+    "tags": [
+      "HIGH_CALCIUM",
+      "HIGH_IRON",
+      "HIGH_POTASSIUM",
+      "HIGH_VITAMIN_D"
+    ]
+  },
+  "paneer_butter_masala": {
+    "tags": [
+      "HIGH_CALCIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_SODIUM",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "phirni": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM",
+      "HIGH_B12"
+    ]
+  },
+  "poha": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_IRON"
+    ]
+  },
+  "rasgulla": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "ras_malai": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "rabri": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "sambar": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "sandesh": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "shrikhand": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM",
+      "HIGH_B12"
+    ]
+  },
+  "unni_appam": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "idli": {
+    "tags": [
+      "HIGH_FIBER"
+    ]
+  },
+  "dosa": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON"
+    ]
+  },
+  "uttapam": {
+    "tags": [
+      "HIGH_FIBER"
+    ]
+  },
+  "upma": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "rajma": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "chole": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "khichdi": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_GLYCEMIC_INDEX"
+    ]
+  },
+  "pav_bhaji": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SODIUM",
+      "HIGH_CALORIE_DENSITY"
+    ]
+  },
+  "vada_pav": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_SODIUM",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "paneer_tikka": {
+    "tags": [
+      "HIGH_CALCIUM",
+      "HIGH_SATURATED_FAT",
+      "HIGH_B12"
+    ]
+  },
+  "tandoori_chicken": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "fish_curry": {
+    "tags": [
+      "HIGH_OMEGA_3",
+      "HIGH_B12",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "prawn_curry": {
+    "tags": [
+      "HIGH_OMEGA_3",
+      "HIGH_B12",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "mutton_curry": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_IRON",
+      "HIGH_SATURATED_FAT"
+    ]
+  },
+  "egg_curry": {
+    "tags": [
+      "HIGH_B12",
+      "HIGH_VITAMIN_D",
+      "HIGH_CALCIUM"
+    ]
+  },
+  "mixed_vegetable_curry": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM",
+      "HIGH_VITAMIN_D"
+    ]
+  },
+  "aloo_paratha": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_SODIUM"
+    ]
+  },
+  "methi_paratha": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_IRON"
+    ]
+  },
+  "puri": {
+    "tags": [
+      "HIGH_GLYCEMIC_INDEX",
+      "HIGH_CALORIE_DENSITY",
+      "HIGH_TRANS_FAT"
+    ]
+  },
+  "raita": {
+    "tags": [
+      "HIGH_CALCIUM",
+      "HIGH_B12",
+      "HIGH_POTASSIUM"
+    ]
+  },
+  "mango_lassi": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_CALCIUM",
+      "HIGH_GLYCEMIC_INDEX"
+    ]
+  },
+  "coconut_chutney": {
+    "tags": [
+      "HIGH_SATURATED_FAT",
+      "HIGH_FIBER"
+    ]
+  },
+  "tamarind_chutney": {
+    "tags": [
+      "HIGH_SUGAR",
+      "HIGH_IRON"
+    ]
+  },
+  "green_chutney": {
+    "tags": [
+      "HIGH_FIBER",
+      "HIGH_POTASSIUM"
+    ]
+  }
+}

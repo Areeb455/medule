@@ -1,3 +1,6 @@
+# ==========================================
+# FRONTEND (Vite / React / Node)
+# ==========================================
 # Logs
 logs
 *.log
@@ -7,16 +10,44 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencies & Build Outputs
+node_modules/
+dist/
+dist-ssr/
 *.local
 
-# Editor directories and files
+# ==========================================
+# BACKEND & ML (FastAPI / Python)
+# ==========================================
+# Virtual Environments & Secrets 
+# (This covers server/venv, ml-service/venv, and all .env files)
+venv/
+env/
+.env
+
+# Byte-compiled / optimized Python files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local Databases
+*.sqlite3
+*.db
+
+# Testing / Linting
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+# ==========================================
+# GLOBAL / OS / EDITORS
+# ==========================================
+.DS_Store
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
 *.suo
 *.ntvs*
 *.njsproj

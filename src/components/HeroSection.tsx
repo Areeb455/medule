@@ -1,4 +1,5 @@
-import { Heart, Activity, Brain, Pill, Shield } from "lucide-react";
+import { Heart, Activity, Brain, Pill, Shield, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-health.jpg";
 
 const FloatingIcon = ({ children, className }: { children: React.ReactNode; className?: string }) => (
@@ -43,6 +44,20 @@ const HeroSection = () => {
             <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
               Your Real-Time Digital Health Twin for Smarter Healthcare Decisions
             </p>
+            <div className="flex flex-wrap gap-4 pt-2">
+              <Button
+                size="lg"
+                className="gradient-bg text-primary-foreground rounded-full px-8 hover:opacity-90 transition-opacity"
+                asChild
+              >
+                <a href="/analyze">
+                  Try It Now <ArrowRight className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
+              <Button size="lg" variant="outline" className="rounded-full px-8" asChild>
+                <a href="#overview">Learn More</a>
+              </Button>
+            </div>
           </div>
 
           {/* Right Image */}

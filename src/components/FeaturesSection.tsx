@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { FileText, UtensilsCrossed, Stethoscope, CalendarCheck, Building2, Fingerprint, Lightbulb } from "lucide-react";
+import { FileText, UtensilsCrossed, Stethoscope, CalendarCheck, Building2, Fingerprint, Lightbulb, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const features = [
   { icon: FileText, title: "PDF Parser", text: "Extracts data from medical reports and documents." },
@@ -50,6 +51,14 @@ const FeaturesSection = () => {
               <p className="text-sm text-muted-foreground leading-relaxed">{feature.text}</p>
             </div>
           ))}
+        </div>
+
+        <div className={`mt-14 text-center transition-all duration-700 delay-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+          <Button size="lg" className="gradient-bg text-primary-foreground rounded-full px-10 hover:opacity-90 transition-opacity" asChild>
+            <a href="/analyze">
+              Analyze Your Food Now <ArrowRight className="ml-2 h-4 w-4" />
+            </a>
+          </Button>
         </div>
       </div>
     </section>

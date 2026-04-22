@@ -28,7 +28,7 @@ const Navbar = () => {
             </a>
           ))}
           <Button size="sm" className="gradient-bg text-primary-foreground rounded-full px-6 hover:opacity-90 transition-opacity" asChild>
-            <a href="#features">Get Started</a>
+            <a href="/analyze">Get Started</a>
           </Button>
         </nav>
 
@@ -45,7 +45,7 @@ const Navbar = () => {
             </a>
           ))}
           <Button size="sm" className="w-full gradient-bg text-primary-foreground rounded-full hover:opacity-90" asChild>
-            <a href="#features" onClick={() => setOpen(false)}>Get Started</a>
+            <a href="/analyze" onClick={() => setOpen(false)}>Get Started</a>
           </Button>
         </div>
       )}

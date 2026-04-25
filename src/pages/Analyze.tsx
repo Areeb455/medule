@@ -32,7 +32,8 @@ export default function Analyze() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:8000/upload-medical-report", {
+      // Replaced localhost with live Render URL
+      const res = await fetch("https://medule-3ix4.onrender.com/upload-medical-report", {
         method: "POST",
         body: formData,
       });
@@ -61,7 +62,8 @@ export default function Analyze() {
     formData.append("profile", profileData?.assigned_profile || "full");
 
     try {
-      const res = await fetch("http://localhost:8000/analyze-food", {
+      // Replaced localhost with live Render URL
+      const res = await fetch("https://medule-3ix4.onrender.com/analyze-food", {
         method: "POST",
         body: formData,
       });

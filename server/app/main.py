@@ -4,6 +4,7 @@ import uuid
 import logging
 import shutil
 import asyncio
+import base64
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -23,7 +24,7 @@ from google.genai import types
 from dotenv import load_dotenv
 
 # ============================================================
-# CONFIG — paths relative to this file so CWD doesn't matter
+# CONFIG
 # ============================================================
 _APP_DIR = Path(__file__).parent
 
@@ -40,7 +41,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_MODEL   = os.environ.get("GEMINI_MODEL", "gemini-3-flash-preview")
+GEMINI_MODEL   = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
 gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 # ============================================================
@@ -86,13 +87,12 @@ PATIENT_PROFILES = {
 # ML STORE & STATE
 # ============================================================
 ml: Dict[str, Any] = {}
-mock_mode = True  # starts True; set False if model loads within timeout
+mock_mode = True
 
 # ============================================================
-# IMAGE PREPROCESSING (torchvision-free)
+# IMAGE PREPROCESSING
 # ============================================================
 def _manual_preprocess(img_path: str, device) -> torch.Tensor:
-    """Resize(256) -> CenterCrop(224) -> Normalize using PIL + NumPy only."""
     img = Image.open(img_path).convert("RGB")
     img = img.resize((256, 256), Image.BILINEAR)
     left = top = (256 - 224) // 2
@@ -104,9 +104,7 @@ def _manual_preprocess(img_path: str, device) -> torch.Tensor:
     return torch.from_numpy(arr).permute(2, 0, 1).float().unsqueeze(0).to(device)
 
 # ============================================================
-# MODEL LOADER — runs in a background thread.
-# torchvision._C.so hangs on Python 3.14 + macOS in some setups;
-# the 30 s asyncio timeout in lifespan prevents the server hanging.
+# MODEL LOADER
 # ============================================================
 def _try_load_model() -> bool:
     try:
@@ -137,7 +135,6 @@ async def lifespan(app: FastAPI):
 
     ml["device"] = torch.device("cpu")
 
-    # Load class names + food DB immediately (no torchvision needed)
     try:
         with open(CLASS_NAMES_PATH) as f:
             ml["class_names"] = json.load(f)
@@ -153,7 +150,6 @@ async def lifespan(app: FastAPI):
             "salad":  {"tags": ["HIGH_FIBER", "HIGH_POTASSIUM"]},
         }
 
-    # Attempt vision model load in background thread with a 30 s hard timeout.
     executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="model_loader")
     try:
         loop = asyncio.get_event_loop()
@@ -196,28 +192,26 @@ app.add_middleware(
 
 
 # ============================================================
-# PDF / MEDICAL REPORT ENDPOINT
+# MEDICAL REPORT ENDPOINT — accepts PDF and image
 # ============================================================
 @app.post("/upload-medical-report", response_model=MedicalProfileResponse)
 async def upload_medical_report(file: UploadFile = File(...)):
-    if not file.filename.endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
-    temp_pdf_path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4()}_{file.filename}")
+    # Validate file type
+    is_pdf   = file.filename.lower().endswith(".pdf")
+    is_image = file.content_type.startswith("image/")
+
+    if not is_pdf and not is_image:
+        raise HTTPException(
+            status_code=400,
+            detail="Please upload a PDF or an image (JPG, PNG, WEBP) of your medical report."
+        )
+
+    temp_path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4()}_{file.filename}")
 
     try:
-        with open(temp_pdf_path, "wb") as fh:
+        with open(temp_path, "wb") as fh:
             shutil.copyfileobj(file.file, fh)
-
-        extracted_text = ""
-        with pdfplumber.open(temp_pdf_path) as pdf:
-            for page in pdf.pages:
-                text = page.extract_text()
-                if text:
-                    extracted_text += text + "\n"
-
-        if not extracted_text.strip():
-            raise HTTPException(status_code=400, detail="Could not extract text from the PDF.")
 
         if not gemini_client:
             logger.warning("No GEMINI_API_KEY — returning mock medical profile.")
@@ -230,8 +224,17 @@ async def upload_medical_report(file: UploadFile = File(...)):
                 summary="Mock profile: patient shows markers of prediabetes. Set GEMINI_API_KEY for real analysis.",
             )
 
-        prompt = f"""
-        You are an expert clinical AI reviewing a medical report that the user has just uploaded about themselves.
+        http_opts = types.HttpOptions(
+            timeout=30000,
+            retry_options=types.HttpRetryOptions(
+                attempts=5,
+                initial_delay=2.0,
+                max_delay=60.0,
+            )
+        )
+
+        PROMPT = """
+        You are an expert clinical AI reviewing a medical report uploaded by the user.
         Speak directly to the user in second person — use "you", "your", "you have", "your report shows", etc.
         Never refer to them as "the patient" or in third person.
 
@@ -244,33 +247,54 @@ async def upload_medical_report(file: UploadFile = File(...)):
         - "cardiac": high cholesterol, LDL, triglycerides, cardiovascular risk
         - "deficiency": low Iron, B12, Vitamin D, Calcium, etc.
         - "full": multiple severe categories or none of the specific ones fit
-
-        Their Medical Report:
-        {extracted_text[:15000]}
         """
 
-        http_opts = types.HttpOptions(
-            timeout=30000,
-            retry_options=types.HttpRetryOptions(
-                attempts=5,
-                initial_delay=2.0,
-                max_delay=60.0,
+        # ── PDF: extract text and send as text prompt ──
+        if is_pdf:
+            extracted_text = ""
+            with pdfplumber.open(temp_path) as pdf:
+                for page in pdf.pages:
+                    text = page.extract_text()
+                    if text:
+                        extracted_text += text + "\n"
+
+            if not extracted_text.strip():
+                raise HTTPException(status_code=400, detail="Could not extract text from the PDF. Try uploading an image of the report instead.")
+
+            response = gemini_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=PROMPT + f"\n\nTheir Medical Report:\n{extracted_text[:15000]}",
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=MedicalProfileResponse,
+                    temperature=0.1,
+                    http_options=http_opts,
+                ),
             )
-        )
 
-        response = gemini_client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=MedicalProfileResponse,
-                temperature=0.1,
-                http_options=http_opts,
-            ),
-        )
+        # ── Image: send directly to Gemini vision ──
+        else:
+            with open(temp_path, "rb") as img_file:
+                img_bytes = img_file.read()
 
-        result = json.loads(response.text)
-        return result
+            response = gemini_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=[
+                    types.Part.from_bytes(
+                        data=img_bytes,
+                        mime_type=file.content_type,
+                    ),
+                    types.Part.from_text(text=PROMPT),
+                ],
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=MedicalProfileResponse,
+                    temperature=0.1,
+                    http_options=http_opts,
+                ),
+            )
+
+        return json.loads(response.text)
 
     except HTTPException:
         raise
@@ -284,8 +308,8 @@ async def upload_medical_report(file: UploadFile = File(...)):
             )
         raise HTTPException(status_code=500, detail="Failed to analyze the report. Please try again.")
     finally:
-        if os.path.exists(temp_pdf_path):
-            os.remove(temp_pdf_path)
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 # ============================================================
@@ -340,7 +364,6 @@ async def analyze_food(
                 for i in range(k)
             ]
 
-        # Medical rules engine
         user_constraints = PATIENT_PROFILES[profile]
         warnings, benefits = [], []
         for pred in predictions:
@@ -361,9 +384,6 @@ async def analyze_food(
 
         return {
             "top_prediction":   top["food"],
-            "confidence":       top["confidence"],
-            "confidence_level": "high" if top["confidence"] >= 0.85 else "medium" if top["confidence"] >= 0.60 else "low",
-            "all_predictions":  predictions,
             "dietary_status":   status,
             "warnings":         warnings,
             "medical_benefits": benefits,

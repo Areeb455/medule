@@ -123,6 +123,8 @@ def _try_load_model() -> bool:
         return True
     except Exception as e:
         logger.warning(f"Vision model load failed: {e}")
+        import traceback
+        logger.warning(traceback.format_exc())  # FIX: full traceback so you can debug mock_mode
         return False
 
 # ============================================================
@@ -364,26 +366,34 @@ async def analyze_food(
                 for i in range(k)
             ]
 
+        # ============================================================
+        # FIX: Only analyze the TOP prediction for warnings/benefits.
+        # Previously iterating all top-k predictions caused duplicate
+        # warnings when multiple predictions shared the same food tags.
+        # ============================================================
+        top = predictions[0]
         user_constraints = PATIENT_PROFILES[profile]
         warnings, benefits = [], []
-        for pred in predictions:
-            food_tags = ml["food_db"].get(pred["food"], {}).get("tags", [])
-            for constraint in user_constraints:
-                rule = MEDICAL_RULES_ENGINE[constraint]
-                if rule["type"] == "RESTRICTION" and rule["conflict_tag"] in food_tags:
-                    entry = {"category": rule["category"], "message": rule["message"], "detected_in": pred["food"]}
-                    if entry not in warnings:
-                        warnings.append(entry)
-                elif rule["type"] == "BOOSTER" and rule["target_tag"] in food_tags:
-                    entry = {"category": rule["category"], "message": rule["message"], "detected_in": pred["food"]}
-                    if entry not in benefits:
-                        benefits.append(entry)
 
-        top = predictions[0]
+        food_tags = ml["food_db"].get(top["food"], {}).get("tags", [])
+        for constraint in user_constraints:
+            rule = MEDICAL_RULES_ENGINE[constraint]
+            if rule["type"] == "RESTRICTION" and rule["conflict_tag"] in food_tags:
+                # FIX: removed "detected_in" field — it caused identical warnings
+                # from different predictions to bypass the dedup check
+                entry = {"category": rule["category"], "message": rule["message"]}
+                if entry not in warnings:
+                    warnings.append(entry)
+            elif rule["type"] == "BOOSTER" and rule["target_tag"] in food_tags:
+                entry = {"category": rule["category"], "message": rule["message"]}
+                if entry not in benefits:
+                    benefits.append(entry)
+
         status = "APPROVED" if not warnings else "NEEDS MODIFICATION"
 
         return {
             "top_prediction":   top["food"],
+            "confidence":       top["confidence"],
             "dietary_status":   status,
             "warnings":         warnings,
             "medical_benefits": benefits,

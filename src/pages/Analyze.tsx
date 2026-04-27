@@ -21,17 +21,7 @@ function AnalysisResult({ result, foodPreview, profileLabel, onReset }: {
             <h3 className="mt-4 text-2xl font-bold capitalize text-center text-foreground">
               {result.top_prediction?.replace(/_/g, " ")}
             </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Confidence:{" "}
-              <span className={result.confidence_level === "high" ? "text-green-400" : result.confidence_level === "medium" ? "text-yellow-400" : "text-red-400"}>
-                {Math.round(result.confidence * 100)}%
-              </span>
-            </p>
-            {result.confidence_level === "low" && (
-              <p className="text-xs text-yellow-400 mt-2 text-center bg-yellow-500/10 rounded-lg px-3 py-2">
-                Low confidence — consider retaking the photo in better lighting.
-              </p>
-            )}
+            
           </div>
           <div className="w-full md:w-2/3 flex flex-col justify-center space-y-6">
             <div className={`p-4 rounded-xl flex items-center gap-3 ${approved ? "bg-green-500/10 border border-green-500/20" : "bg-red-500/10 border border-red-500/20"}`}>

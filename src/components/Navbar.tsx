@@ -1,56 +1,88 @@
 import { useState } from "react";
-import { Activity, Menu, X } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
+import { Menu, X, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const Navbar = () => {
-  const [open, setOpen] = useState(false);
+const NAV_LINKS = [
+  { href: "/analyze",   label: "Food AI" },
+  { href: "/diagnose",  label: "Disease AI" },
+  { href: "/habits",    label: "Habits" },
+  { href: "/dashboard", label: "Digital Twin" },
+  { href: "/patients",  label: "Patients" },
+];
 
-  const links = [
-    { label: "Overview", href: "#overview" },
-    { label: "Features", href: "#features" },
-    { label: "Vision", href: "#vision" },
-  ];
+export default function Navbar() {
+  const [open, setOpen] = useState(false);
+  const { pathname }    = useLocation();
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass">
+    <nav className="fixed top-0 inset-x-0 z-50 glass border-b border-border/50">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-        <a href="#" className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-lg gradient-bg">
-            <Activity className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-lg text-foreground">Medule</span>
-        </a>
 
-        <nav className="hidden md:flex items-center gap-8">
-          {links.map((l) => (
-            <a key={l.label} href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              {l.label}
-            </a>
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2 font-bold text-xl">
+          <Activity className="h-5 w-5 text-primary" />
+          <span className="gradient-text">Medule</span>
+        </Link>
+
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-1">
+          {NAV_LINKS.map(link => (
+            <Link
+              key={link.href}
+              to={link.href}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                pathname === link.href
+                  ? "gradient-bg text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+              }`}
+            >
+              {link.label}
+            </Link>
           ))}
-          <Button size="sm" className="gradient-bg text-primary-foreground rounded-full px-6 hover:opacity-90 transition-opacity" asChild>
-            <a href="/analyze">Get Started</a>
-          </Button>
-        </nav>
+        </div>
 
-        <button className="md:hidden text-foreground" onClick={() => setOpen(!open)}>
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        {/* Auth */}
+        <div className="flex items-center gap-3">
+          <SignedIn>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
+          <SignedOut>
+            <Link to="/sign-in">
+              <Button className="gradient-bg rounded-full px-5 text-sm">Sign In</Button>
+            </Link>
+          </SignedOut>
+
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden p-2 text-muted-foreground hover:text-foreground"
+            onClick={() => setOpen(!open)}
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
+      {/* Mobile menu */}
       {open && (
-        <div className="md:hidden glass border-t border-border px-6 py-4 space-y-3">
-          {links.map((l) => (
-            <a key={l.label} href={l.href} className="block text-sm text-muted-foreground hover:text-foreground" onClick={() => setOpen(false)}>
-              {l.label}
-            </a>
+        <div className="md:hidden glass border-t border-border/50 px-6 py-4 space-y-1">
+          {NAV_LINKS.map(link => (
+            <Link
+              key={link.href}
+              to={link.href}
+              onClick={() => setOpen(false)}
+              className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                pathname === link.href
+                  ? "gradient-bg text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+              }`}
+            >
+              {link.label}
+            </Link>
           ))}
-          <Button size="sm" className="w-full gradient-bg text-primary-foreground rounded-full hover:opacity-90" asChild>
-            <a href="/analyze" onClick={() => setOpen(false)}>Get Started</a>
-          </Button>
         </div>
       )}
-    </header>
+    </nav>
   );
-};
-
-export default Navbar;
+}

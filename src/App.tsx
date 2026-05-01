@@ -7,7 +7,6 @@ import Habits from "./pages/Habits";
 import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
 import SignInPage from "./pages/SignInPage";
-import NotFound from "./pages/NotFound";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth();
@@ -34,7 +33,7 @@ const App = () => (
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/patients"  element={<ProtectedRoute><Patients /></ProtectedRoute>} />
 
-      <Route path="*" element={<NotFound />} />
+     <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   </BrowserRouter>
 );

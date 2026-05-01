@@ -1,11 +1,10 @@
 fastapi
-uvicorn
+uvicorn[standard]
 python-multipart
-torch
-torchvision
-Pillow
-numpy
-pdfplumber
 google-genai
+pdfplumber
 pydantic
-python-dotenv
+motor
+pymongo
+python-jose[cryptography]
+httpx

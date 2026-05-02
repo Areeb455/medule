@@ -24,15 +24,25 @@ export function usePatient() {
     };
   }
 
-  /**
-   * Build a FormData that includes user_id and patient_name
-   * alongside a file — for the analyze endpoints.
-   */
   function buildFormData(file: File): FormData {
     const fd = new FormData();
     fd.append("image", file);
-    if (userId) fd.append("user_id", userId);
+
+    if (userId) {
+      fd.append("user_id", userId);
+      console.log("✅ Sending user_id:", userId);
+      console.log("✅ Sending patient_name:", patientName);
+    } else {
+      console.warn("❌ userId is null — Clerk not loaded or not signed in");
+    }
+
     fd.append("patient_name", patientName);
+
+    // Log all FormData entries for debugging
+    for (const [key, value] of fd.entries()) {
+      console.log(`FormData → ${key}:`, value);
+    }
+
     return fd;
   }
 

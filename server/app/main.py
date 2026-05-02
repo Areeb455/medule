@@ -336,7 +336,7 @@ async def analyze_disease(
 # ============================================================
 @app.post("/log-habit")
 async def log_habit(session: HabitSession):
-    if not db:
+    if db is None:
         raise HTTPException(status_code=503, detail="Database not configured.")
     await upsert_patient(session.user_id, session.patient_name)
     doc = session.model_dump()
@@ -354,7 +354,7 @@ async def log_habit(session: HabitSession):
 # ============================================================
 @app.post("/log-manual")
 async def log_manual(entry: ManualLogEntry):
-    if not db:
+    if db is None:
         raise HTTPException(status_code=503, detail="Database not configured.")
     await upsert_patient(entry.user_id, entry.patient_name)
     collection_map = {"food": "food_logs", "disease": "disease_logs", "habit": "habit_logs"}
@@ -379,7 +379,7 @@ async def log_manual(entry: ManualLogEntry):
 # ============================================================
 @app.get("/patients")
 async def get_all_patients():
-    if not db:
+    if db is None:
         raise HTTPException(status_code=503, detail="Database not configured.")
     cursor = db.patients.find().sort("last_active", -1)
     patients = []
@@ -389,7 +389,7 @@ async def get_all_patients():
 
 @app.get("/patient/{user_id}")
 async def get_patient(user_id: str):
-    if not db:
+    if db is None:
         raise HTTPException(status_code=503, detail="Database not configured.")
     patient = await db.patients.find_one({"user_id": user_id})
     if not patient:
@@ -404,7 +404,7 @@ async def get_patient(user_id: str):
 # ============================================================
 @app.get("/digital-twin/{user_id}")
 async def digital_twin_summary(user_id: str):
-    if not db:
+    if db is None:
         raise HTTPException(status_code=503, detail="Database not configured.")
 
     patient = await db.patients.find_one({"user_id": user_id})

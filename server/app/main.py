@@ -228,7 +228,7 @@ async def analyze_food(
         result = json.loads(clean_json(raw))
 
         # Save to MongoDB
-        if db and user_id and patient_name:
+        if db is not None and user_id and patient_name:
             await upsert_patient(user_id, patient_name)
             await db.food_logs.insert_one({
                 "user_id":      user_id,
@@ -301,7 +301,7 @@ async def analyze_disease(
         result = json.loads(clean_json(raw))
 
         # Save to MongoDB
-        if db and user_id and patient_name:
+        if db is not None and user_id and patient_name:
             await upsert_patient(user_id, patient_name)
             await db.disease_logs.insert_one({
                 "user_id":        user_id,

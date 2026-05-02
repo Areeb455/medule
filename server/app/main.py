@@ -33,8 +33,8 @@ app.add_middleware(
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_URL     = "https://openrouter.ai/api/v1/chat/completions"
 # Free model that supports vision
-VISION_MODEL = "meta-llama/llama-3.2-11b-vision-instruct:free"
-TEXT_MODEL   = "meta-llama/llama-3.1-8b-instruct:free"
+VISION_MODEL = "openrouter/auto"
+TEXT_MODEL   = "openrouter/auto"
 
 UPLOAD_DIR   = "/tmp/medule_uploads"
 MONGODB_URI  = os.getenv("MONGODB_URI", "")

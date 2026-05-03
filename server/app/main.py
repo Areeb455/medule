@@ -54,10 +54,19 @@ db = None
 @app.on_event("startup")
 async def startup():
     global mongo_client, db
+    logger.info(f"MONGODB_URI present: {bool(MONGODB_URI)}")
+    logger.info(f"MONGODB_URI starts with: {MONGODB_URI[:20] if MONGODB_URI else 'EMPTY'}")
     if MONGODB_URI:
-        mongo_client = AsyncIOMotorClient(MONGODB_URI)
-        db = mongo_client["medule"]
-        logger.info("MongoDB connected")
+        try:
+            mongo_client = AsyncIOMotorClient(MONGODB_URI)
+            db = mongo_client["medule"]
+            # Force a connection test
+            await mongo_client.admin.command('ping')
+            logger.info("MongoDB connected successfully")
+        except Exception as e:
+            logger.error(f"MongoDB connection failed: {e}")
+    else:
+        logger.error("MONGODB_URI is empty — check Render environment variables")
 
 @app.on_event("shutdown")
 async def shutdown():

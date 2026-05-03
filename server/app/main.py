@@ -8,6 +8,7 @@ import os, json, uuid, shutil, logging, base64
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List, Optional
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 
 import pdfplumber
 import httpx
@@ -195,8 +196,8 @@ async def root():
 @app.post("/analyze-food")
 async def analyze_food(
     image: UploadFile = File(...),
-    user_id:      Optional[str] = None,
-    patient_name: Optional[str] = None,
+    user_id:      Optional[str] = Form(None),
+    patient_name: Optional[str] = Form(None),
 ):
     allowed = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
     if image.content_type not in allowed and not image.filename.lower().endswith(".pdf"):
@@ -267,8 +268,8 @@ async def analyze_food(
 @app.post("/analyze-disease")
 async def analyze_disease(
     image: UploadFile = File(...),
-    user_id:      Optional[str] = None,
-    patient_name: Optional[str] = None,
+    user_id:      Optional[str] = Form(None),
+    patient_name: Optional[str] = Form(None),
 ):
     allowed = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
     if image.content_type not in allowed and not image.filename.lower().endswith(".pdf"):

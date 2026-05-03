@@ -1,16 +1,17 @@
 """
 Medule - FastAPI Backend v2.2
-AI: OpenRouter (free models) instead of Gemini
+AI: OpenRouter (free models)
 DB: MongoDB Atlas
 """
 
 import os, json, uuid, shutil, logging, base64
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List, Optional
 
 import pdfplumber
 import httpx
-from fastapi import FastAPI, File, UploadFile, HTTPException, Header
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -18,10 +19,42 @@ from motor.motor_asyncio import AsyncIOMotorClient
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ─── App ──────────────────────────────────────────────────
-app = FastAPI(title="Medule API", version="2.2.0")
+# ─── Config ───────────────────────────────────────────────
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_URL     = "https://openrouter.ai/api/v1/chat/completions"
+VISION_MODEL       = "openrouter/auto"
+TEXT_MODEL         = "openrouter/auto"
+UPLOAD_DIR         = "/tmp/medule_uploads"
+MONGODB_URI        = os.getenv("MONGODB_URI", "")
 
-from fastapi.middleware.cors import CORSMiddleware
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# ─── MongoDB globals ──────────────────────────────────────
+mongo_client = None
+db = None
+
+# ─── Lifespan ─────────────────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global mongo_client, db
+    logger.info(f"MONGODB_URI present: {bool(MONGODB_URI)}")
+    if MONGODB_URI:
+        try:
+            mongo_client = AsyncIOMotorClient(MONGODB_URI)
+            db = mongo_client["medule"]
+            await mongo_client.admin.command("ping")
+            logger.info("MongoDB connected successfully")
+        except Exception as e:
+            logger.error(f"MongoDB connection failed: {e}")
+    else:
+        logger.error("MONGODB_URI is empty — check Render environment variables")
+    yield
+    if mongo_client:
+        mongo_client.close()
+        logger.info("MongoDB disconnected")
+
+# ─── App ──────────────────────────────────────────────────
+app = FastAPI(title="Medule API", version="2.2.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,44 +67,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ─── Config ───────────────────────────────────────────────
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_URL     = "https://openrouter.ai/api/v1/chat/completions"
-# Free model that supports vision
-VISION_MODEL = "openrouter/auto"
-TEXT_MODEL   = "openrouter/auto"
-
-UPLOAD_DIR   = "/tmp/medule_uploads"
-MONGODB_URI  = os.getenv("MONGODB_URI", "")
-
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-# ─── MongoDB ──────────────────────────────────────────────
-mongo_client = None
-db = None
-
-@app.on_event("startup")
-async def startup():
-    global mongo_client, db
-    logger.info(f"MONGODB_URI present: {bool(MONGODB_URI)}")
-    logger.info(f"MONGODB_URI starts with: {MONGODB_URI[:20] if MONGODB_URI else 'EMPTY'}")
-    if MONGODB_URI:
-        try:
-            mongo_client = AsyncIOMotorClient(MONGODB_URI)
-            db = mongo_client["medule"]
-            # Force a connection test
-            await mongo_client.admin.command('ping')
-            logger.info("MongoDB connected successfully")
-        except Exception as e:
-            logger.error(f"MongoDB connection failed: {e}")
-    else:
-        logger.error("MONGODB_URI is empty — check Render environment variables")
-
-@app.on_event("shutdown")
-async def shutdown():
-    if mongo_client:
-        mongo_client.close()
 
 # ─── Pydantic models ──────────────────────────────────────
 class HabitSession(BaseModel):
@@ -119,36 +114,31 @@ async def upsert_patient(user_id: str, patient_name: str):
         {"$set": {"patient_name": patient_name, "last_active": datetime.now(timezone.utc).isoformat()}}
     )
 
-# ─── OpenRouter call ──────────────────────────────────────
+# ─── OpenRouter ───────────────────────────────────────────
 async def call_openrouter(messages: list, model: str = None) -> str:
-    """Call OpenRouter API and return text response."""
     if not OPENROUTER_API_KEY:
         raise HTTPException(status_code=503, detail="AI service not configured.")
-
     async with httpx.AsyncClient(timeout=60) as client:
         response = await client.post(
             OPENROUTER_URL,
             headers={
-                "Authorization":  f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type":   "application/json",
-                "HTTP-Referer":   "https://medule-1.onrender.com",
-                "X-Title":        "Medule Health AI",
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type":  "application/json",
+                "HTTP-Referer":  "https://medule-1.onrender.com",
+                "X-Title":       "Medule Health AI",
             },
             json={
-                "model":    model or VISION_MODEL,
-                "messages": messages,
+                "model":      model or VISION_MODEL,
+                "messages":   messages,
                 "max_tokens": 1500,
             },
         )
-
     if response.status_code != 200:
         logger.error(f"OpenRouter error: {response.text}")
         raise HTTPException(status_code=500, detail=f"AI service error: {response.status_code}")
+    return response.json()["choices"][0]["message"]["content"]
 
-    data = response.json()
-    return data["choices"][0]["message"]["content"]
-
-def image_to_base64(path: str, mime: str) -> str:
+def image_to_base64(path: str) -> str:
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
 
@@ -218,9 +208,7 @@ async def analyze_food(
             shutil.copyfileobj(image.file, fh)
 
         is_pdf = image.filename.lower().endswith(".pdf")
-
         if is_pdf:
-            # Extract text from PDF
             text = ""
             with pdfplumber.open(temp_path) as pdf:
                 for p in pdf.pages:
@@ -229,8 +217,7 @@ async def analyze_food(
                         text += t + "\n"
             messages = [{"role": "user", "content": FOOD_PROMPT + f"\n\nDocument content:\n{text[:8000]}"}]
         else:
-            # Send image as base64
-            b64 = image_to_base64(temp_path, image.content_type)
+            b64 = image_to_base64(temp_path)
             messages = [{
                 "role": "user",
                 "content": [
@@ -242,7 +229,6 @@ async def analyze_food(
         raw = await call_openrouter(messages)
         result = json.loads(clean_json(raw))
 
-        # Save to MongoDB
         if db is not None and user_id and patient_name:
             await upsert_patient(user_id, patient_name)
             await db.food_logs.insert_one({
@@ -259,6 +245,7 @@ async def analyze_food(
                 {"user_id": user_id},
                 {"$inc": {"food_count": 1}, "$set": {"last_active": datetime.now(timezone.utc).isoformat()}}
             )
+            logger.info(f"Food saved for {patient_name}")
 
         return result
 
@@ -293,7 +280,6 @@ async def analyze_disease(
             shutil.copyfileobj(image.file, fh)
 
         is_pdf = image.filename.lower().endswith(".pdf")
-
         if is_pdf:
             text = ""
             with pdfplumber.open(temp_path) as pdf:
@@ -303,7 +289,7 @@ async def analyze_disease(
                         text += t + "\n"
             messages = [{"role": "user", "content": DISEASE_PROMPT + f"\n\nDocument content:\n{text[:8000]}"}]
         else:
-            b64 = image_to_base64(temp_path, image.content_type)
+            b64 = image_to_base64(temp_path)
             messages = [{
                 "role": "user",
                 "content": [
@@ -315,7 +301,6 @@ async def analyze_disease(
         raw = await call_openrouter(messages)
         result = json.loads(clean_json(raw))
 
-        # Save to MongoDB
         if db is not None and user_id and patient_name:
             await upsert_patient(user_id, patient_name)
             await db.disease_logs.insert_one({
@@ -331,6 +316,7 @@ async def analyze_disease(
                 {"user_id": user_id},
                 {"$inc": {"disease_count": 1}, "$set": {"last_active": datetime.now(timezone.utc).isoformat()}}
             )
+            logger.info(f"Disease saved for {patient_name}")
 
         return result
 

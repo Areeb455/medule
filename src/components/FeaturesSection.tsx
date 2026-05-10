@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { FileText, UtensilsCrossed, Stethoscope, CalendarCheck, Building2, Fingerprint, Lightbulb, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const features = [
-  { icon: FileText, title: "PDF Parser", text: "Extracts data from medical reports and documents." },
-  { icon: UtensilsCrossed, title: "Food Recognition Model", text: "Analyzes dietary intake." },
-  { icon: Stethoscope, title: "Disease Recognition Model", text: "Identifies potential conditions from data." },
-  { icon: CalendarCheck, title: "Habit Tracker", text: "Monitors and logs daily health habits." },
-  { icon: Building2, title: "Patient Management System", text: "A tool for clinics to manage patient records." },
-  { icon: Fingerprint, title: "Digital Twin / Real-Time Health Profile", text: "An automatically updating profile of the user's health status." },
-  { icon: Lightbulb, title: "Smart Insights & Recommendations", text: "Personalized advice for better health spending and wellness decisions." },
+  { icon: FileText, title: "PDF Parser", text: "Extracts data from medical reports and documents.", href: "/analyze" },
+  { icon: UtensilsCrossed, title: "Food Recognition Model", text: "Analyzes dietary intake.", href: "/analyze" },
+  { icon: Stethoscope, title: "Disease Recognition Model", text: "Identifies potential conditions from data.", href: "/diagnose" },
+  { icon: CalendarCheck, title: "Habit Tracker", text: "Monitors and logs daily health habits.", href: "/habits" },
+  { icon: Building2, title: "Patient Management System", text: "A tool for clinics to manage patient records.", href: "/patients" },
+  { icon: Fingerprint, title: "Digital Twin / Real-Time Health Profile", text: "An automatically updating profile of the user's health status.", href: "/dashboard" },
+  { icon: Lightbulb, title: "Smart Insights & Recommendations", text: "Personalized advice for better health spending and wellness decisions.", href: "/dashboard" },
 ];
 
 const FeaturesSection = () => {
@@ -37,9 +38,10 @@ const FeaturesSection = () => {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {features.map((feature, i) => (
-            <div
+            <Link
+              to={feature.href}
               key={i}
-              className={`group bg-card rounded-2xl p-6 card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1 ${
+              className={`group block bg-card rounded-2xl p-6 card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1 ${
                 visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               }`}
               style={{ transitionDelay: visible ? `${i * 80}ms` : "0ms" }}
@@ -49,15 +51,15 @@ const FeaturesSection = () => {
               </div>
               <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{feature.text}</p>
-            </div>
+            </Link>
           ))}
         </div>
 
         <div className={`mt-14 text-center transition-all duration-700 delay-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
           <Button size="lg" className="gradient-bg text-primary-foreground rounded-full px-10 hover:opacity-90 transition-opacity" asChild>
-            <a href="/analyze">
+            <Link to="/analyze">
               Analyze Your Food Now <ArrowRight className="ml-2 h-4 w-4" />
-            </a>
+            </Link>
           </Button>
         </div>
       </div>

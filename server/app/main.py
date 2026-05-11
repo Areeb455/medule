@@ -143,6 +143,27 @@ def image_to_base64(path: str) -> str:
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
 
+# ─── Prompts ──────────────────────────────────────────────
+FOOD_PROMPT = """You are an expert nutritionist AI. Analyze this food image.
+Return ONLY a valid JSON object with NO explanation, NO markdown, NO code fences.
+
+Exact structure required:
+{
+  "food_name": "name of the food",
+  "calories": 350,
+  "serving_size": "1 cup (240g)",
+  "macronutrients": {"protein": 12, "carbs": 45, "fats": 8},
+  "micronutrients": ["Vitamin C", "Iron", "Calcium"],
+  "health_verdict": "Healthy",
+  "health_benefits": ["benefit 1", "benefit 2"],
+  "concerns": ["concern 1"],
+  "alternatives": ["alternative 1"]
+}
+
+health_verdict must be exactly one of: Healthy, Moderate, Unhealthy
+All array fields must have at least 1 item.
+If no food visible, use food_name: "Unknown Food" with average values."""
+
 FOOD_TEXT_PROMPT = """You are an expert nutritionist AI. Analyze the food based on its name.
 Return ONLY a valid JSON object with NO explanation, NO markdown, NO code fences.
 
@@ -217,14 +238,14 @@ async def analyze_food(
                     t = p.extract_text()
                     if t:
                         text += t + "\n"
-            messages = [{"role": "user", "content": FOOD_TEXT_PROMPT + f"\n\nDocument content:\n{text[:8000]}"}]
+            messages = [{"role": "user", "content": FOOD_PROMPT + f"\n\nDocument content:\n{text[:8000]}"}]
         else:
             b64 = image_to_base64(temp_path)
             messages = [{
                 "role": "user",
                 "content": [
                     {"type": "image_url", "image_url": {"url": f"data:{image.content_type};base64,{b64}"}},
-                    {"type": "text", "text": FOOD_TEXT_PROMPT},
+                    {"type": "text", "text": FOOD_PROMPT},
                 ],
             }]
 

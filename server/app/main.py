@@ -144,7 +144,7 @@ def image_to_base64(path: str) -> str:
         return base64.b64encode(f.read()).decode("utf-8")
 
 # ─── Prompts ──────────────────────────────────────────────
-FOOD_PROMPT = """You are an expert nutritionist AI. Analyze this food image.
+FOOD_PROMPT = """You are an expert nutritionist AI. Analyze this food image carefully.
 Return ONLY a valid JSON object with NO explanation, NO markdown, NO code fences.
 
 Exact structure required:
@@ -160,9 +160,13 @@ Exact structure required:
   "alternatives": ["alternative 1"]
 }
 
-health_verdict must be exactly one of: Healthy, Moderate, Unhealthy
-All array fields must have at least 1 item.
-If no food visible, use food_name: "Unknown Food" with average values."""
+CRITICAL RULES:
+- health_verdict must be exactly one of: Healthy, Moderate, Unhealthy
+- All array fields must have at least 1 item.
+- If the image clearly shows food, identify it as specifically as possible (e.g. "Chicken Gravy", "Dal Tadka", "Mixed Curry").
+- If you can see it is a curry, stew, or gravy but cannot identify it precisely, use a generic descriptive name like "Chicken Gravy", "Vegetable Curry", or "Mixed Dal" — never use a completely unrelated food name.
+- If the image does NOT contain food (e.g. it shows a person, skin, object, or medical image), return food_name "Unknown Food" with calories: 0, macronutrients: {"protein": 0, "carbs": 0, "fats": 0}, micronutrients: [], health_verdict: "Moderate", health_benefits: ["Unable to analyze — no food detected"], concerns: ["Please upload a food image"], alternatives: ["Try uploading a clear photo of your meal"].
+- Never invent specific nutrition numbers if you genuinely cannot identify the food. Use 0 for all nutrition values when food_name is "Unknown Food"."""
 
 DISEASE_PROMPT = """You are an expert medical AI assistant. Analyze this image or document.
 Return ONLY a valid JSON object with NO explanation, NO markdown, NO code fences.

@@ -228,7 +228,7 @@ async def analyze_food(
                 ],
             }]
 
-        raw = await call_openrouter(messages)
+        raw = await call_openrouter(messages, model=VISION_MODEL)
         result = json.loads(clean_json(raw))
 
         if db is not None and user_id and patient_name:
@@ -349,7 +349,7 @@ async def analyze_disease(
                 ],
             }]
 
-        raw = await call_openrouter(messages)
+        raw = await call_openrouter(messages, model=VISION_MODEL)
         result = json.loads(clean_json(raw))
 
         if db is not None and user_id and patient_name:

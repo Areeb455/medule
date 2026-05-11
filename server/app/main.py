@@ -143,8 +143,7 @@ def image_to_base64(path: str) -> str:
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
 
-# ─── Prompts ──────────────────────────────────────────────
-FOOD_PROMPT = """You are an expert nutritionist AI. Analyze this food image carefully.
+FOOD_TEXT_PROMPT = """You are an expert nutritionist AI. Analyze the food based on its name.
 Return ONLY a valid JSON object with NO explanation, NO markdown, NO code fences.
 
 Exact structure required:
@@ -163,10 +162,8 @@ Exact structure required:
 CRITICAL RULES:
 - health_verdict must be exactly one of: Healthy, Moderate, Unhealthy
 - All array fields must have at least 1 item.
-- If the image clearly shows food, identify it as specifically as possible (e.g. "Chicken Gravy", "Dal Tadka", "Mixed Curry").
-- If you can see it is a curry, stew, or gravy but cannot identify it precisely, use a generic descriptive name like "Chicken Gravy", "Vegetable Curry", or "Mixed Dal" — never use a completely unrelated food name.
-- If the image does NOT contain food (e.g. it shows a person, skin, object, or medical image), return food_name "Unknown Food" with calories: 0, macronutrients: {"protein": 0, "carbs": 0, "fats": 0}, micronutrients: [], health_verdict: "Moderate", health_benefits: ["Unable to analyze — no food detected"], concerns: ["Please upload a food image"], alternatives: ["Try uploading a clear photo of your meal"].
-- Never invent specific nutrition numbers if you genuinely cannot identify the food. Use 0 for all nutrition values when food_name is "Unknown Food"."""
+- Provide reasonable estimated nutritional values based on standard serving sizes for this food item.
+- If the food name is unclear or unrecognizable, return food_name "Unknown Food" with calories: 0, macronutrients: {"protein": 0, "carbs": 0, "fats": 0}, micronutrients: [], health_verdict: "Moderate", health_benefits: ["Unable to analyze — food not recognized"], concerns: ["Please provide a clearer food name"], alternatives: ["Try describing your meal more specifically"]."""
 
 DISEASE_PROMPT = """You are an expert medical AI assistant. Analyze this image or document.
 Return ONLY a valid JSON object with NO explanation, NO markdown, NO code fences.
@@ -265,6 +262,55 @@ async def analyze_food(
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+# ============================================================
+# FOOD ANALYSIS (TEXT/BASED)
+# ============================================================
+class FoodTextInput(BaseModel):
+    food_name: str
+    user_id: Optional[str] = None
+    patient_name: Optional[str] = None
+
+@app.post("/analyze-food-text")
+async def analyze_food_text(input: FoodTextInput):
+    if not input.food_name or len(input.food_name.strip()) < 2:
+        raise HTTPException(status_code=400, detail="Please provide a food name.")
+
+    try:
+        messages = [{"role": "user", "content": FOOD_TEXT_PROMPT + f"\n\nFood name: {input.food_name.strip()}"}]
+        raw = await call_openrouter(messages)
+        result = json.loads(clean_json(raw))
+        result["food_name"] = input.food_name.strip()
+
+        if db is not None and input.user_id and input.patient_name:
+            await upsert_patient(input.user_id, input.patient_name)
+            await db.food_logs.insert_one({
+                "user_id":       input.user_id,
+                "patient_name":  input.patient_name,
+                "timestamp":     datetime.now(timezone.utc).isoformat(),
+                "food_name":     result.get("food_name", "Unknown"),
+                "calories":      result.get("calories", 0),
+                "verdict":       result.get("health_verdict", ""),
+                "summary":       f"{result.get('food_name','?')} — {result.get('calories','?')} kcal — {result.get('health_verdict','')}",
+                "full_result":   result,
+                "entry_type":    "manual",
+            })
+            await db.patients.update_one(
+                {"user_id": input.user_id},
+                {"$inc": {"food_count": 1}, "$set": {"last_active": datetime.now(timezone.utc).isoformat()}}
+            )
+            logger.info(f"Manual food saved for {input.patient_name}")
+
+        return result
+
+    except HTTPException:
+        raise
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parse error: {e}")
+        raise HTTPException(status_code=500, detail="AI returned invalid response. Please try again.")
+    except Exception as e:
+        logger.error(f"Food text analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to analyze food. Please try again.")
 
 # ============================================================
 # DISEASE ANALYSIS

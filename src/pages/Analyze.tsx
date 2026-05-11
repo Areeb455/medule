@@ -37,12 +37,24 @@ function FoodResult({ result, preview, onReset }: { result: any; preview: string
             {verdict}
           </div>
 
+          {result.food_name === "Unknown Food" && (
+            <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3">
+              <AlertTriangle className="h-4 w-4 text-yellow-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-yellow-300">
+                No food was detected in this image. Please upload a clear photo of a meal or dish for accurate analysis.
+              </p>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: "Calories",  value: `${result.calories} kcal` },
-              { label: "Protein",   value: `${result.macronutrients?.protein ?? "—"}g` },
-              { label: "Carbs",     value: `${result.macronutrients?.carbs ?? "—"}g` },
-            ].map((s, i) => (
+            {((): { label: string; value: string }[] => {
+              const isUnknown = result.food_name === "Unknown Food";
+              return [
+                { label: "Calories", value: isUnknown ? "0 kcal" : `${result.calories} kcal` },
+                { label: "Protein",  value: isUnknown ? "0g" : `${result.macronutrients?.protein ?? "—"}g` },
+                { label: "Carbs",    value: isUnknown ? "0g" : `${result.macronutrients?.carbs ?? "—"}g` },
+              ];
+            })().map((s, i) => (
               <div key={i} className="bg-secondary/30 rounded-xl p-3 text-center">
                 <div className="text-lg font-bold text-foreground">{s.value}</div>
                 <div className="text-xs text-muted-foreground">{s.label}</div>

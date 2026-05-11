@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePatient } from "@/hooks/usePatient";
 import {
   RotateCcw, FileText, Utensils, Upload,
-  CheckCircle, AlertTriangle, Info, Zap,
+  CheckCircle, AlertTriangle, Info, Zap, Search,
 } from "lucide-react";
 
 // ── Food Result ───────────────────────────────────────────
@@ -222,7 +222,7 @@ function UploadBox({ onFile, accept, label, sublabel, icon, loading }: {
 // ── Main Page ─────────────────────────────────────────────
 export default function Analyze() {
   const { toast } = useToast();
-  const { buildFormData, API } = usePatient();
+  const { userId, patientName, buildFormData, API } = usePatient();
 
   // Medical report state
   const [reportLoading, setReportLoading] = useState(false);
@@ -232,6 +232,11 @@ export default function Analyze() {
   const [foodLoading, setFoodLoading]   = useState(false);
   const [foodPreview, setFoodPreview]   = useState<string | null>(null);
   const [foodResult, setFoodResult]     = useState<any>(null);
+
+    // Manual food entry state
+  const [manualMode, setManualMode]   = useState(false);
+  const [manualFood, setManualFood]   = useState("");
+  const [manualLoading, setManualLoading] = useState(false);
 
   // ── Medical report upload → /analyze-disease ──
   const handleReportUpload = async (file: File) => {
@@ -275,6 +280,37 @@ export default function Analyze() {
     }
   };
 
+    // Manual food text entry → /analyze-food-text
+  const handleManualFoodSubmit = async () => {
+    if (!manualFood.trim()) return;
+    setManualLoading(true);
+    try {
+      const res = await fetch(`${API}/analyze-food-text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          food_name: manualFood.trim(),
+          user_id: userId || undefined,
+          patient_name: patientName || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({ detail: "Analysis failed." }));
+        throw new Error(b.detail ?? "Analysis failed.");
+      }
+      const result = await res.json();
+      result.food_name = manualFood.trim();
+      setFoodResult(result);
+      setManualMode(false);
+      setManualFood("");
+      toast({ title: "Analysis Complete", description: "Food analysis saved to your profile." });
+    } catch (err: any) {
+      toast({ title: "Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setManualLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -315,7 +351,7 @@ export default function Analyze() {
             )}
           </div>
 
-          {/* Food Analysis Section */}
+                   {/* Food Analysis Section */}
           <div className="glass card-shadow rounded-2xl p-8 animate-fade-in-up">
             <div className="flex items-center gap-3 mb-6">
               <Utensils className="h-5 w-5 text-primary" />
@@ -326,19 +362,66 @@ export default function Analyze() {
             </div>
 
             {foodResult ? (
-              <FoodResult result={foodResult} preview={foodPreview} onReset={() => { setFoodResult(null); setFoodPreview(null); }} />
+              <FoodResult result={foodResult} preview={foodPreview} onReset={() => { setFoodResult(null); setFoodPreview(null); setManualMode(false); }} />
+            ) : manualMode ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Button variant="ghost" size="sm" onClick={() => setManualMode(false)} className="text-muted-foreground">
+                    ← Back to Upload
+                  </Button>
+                </div>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3 bg-secondary/30 rounded-xl p-4">
+                    <Search className="h-5 w-5 text-primary shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Enter food name (e.g., Dal Tadka, Butter Chicken, Paneer Tikka)"
+                      value={manualFood}
+                      onChange={(e) => setManualFood(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleManualFoodSubmit()}
+                      className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
+                    />
+                    <Button onClick={handleManualFoodSubmit} disabled={!manualFood.trim() || manualLoading} className="gradient-bg rounded-full px-6">
+                      {manualLoading ? "Analyzing..." : "Analyze"}
+                    </Button>
+                  </div>
+                  {manualLoading && (
+                    <div className="text-center py-4">
+                      <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2" />
+                      <p className="text-muted-foreground text-sm">Analyzing with AI...</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : (
-              <UploadBox
-                onFile={handleFoodUpload}
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                label="Drag & Drop Food Image or Click to Browse"
-                sublabel="JPG, PNG, WEBP — get instant nutritional breakdown and health verdict"
-                icon={<Utensils className="w-8 h-8 text-primary-foreground" />}
-                loading={foodLoading}
-              />
+              <div className="space-y-4">
+                <UploadBox
+                  onFile={handleFoodUpload}
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  label="Drag & Drop Food Image or Click to Browse"
+                  sublabel="JPG, PNG, WEBP — get instant nutritional breakdown and health verdict"
+                  icon={<Utensils className="w-8 h-8 text-primary-foreground" />}
+                  loading={foodLoading}
+                />
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or</span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full rounded-xl py-6 border-dashed"
+                  onClick={() => { setManualMode(true); setManualFood(""); }}
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Type Food Name Manually
+                </Button>
+              </div>
             )}
           </div>
-
           {/* Tips */}
           <div className="grid grid-cols-3 gap-4 animate-fade-in-up">
             {[

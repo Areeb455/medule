@@ -6,11 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 import { usePatient } from "@/hooks/usePatient";
 import {
   RotateCcw, FileText, Utensils, Upload,
-  CheckCircle, AlertTriangle, Info, Zap, Search, Camera, FlipHorizontal, X,
+  CheckCircle, AlertTriangle, Info, Zap, Search, Camera, FlipHorizontal, X, Edit2
 } from "lucide-react";
 
 // ── Food Result ───────────────────────────────────────────
-function FoodResult({ result, preview, onReset }: { result: any; preview: string | null; onReset: () => void }) {
+// ADDED: onManualEdit prop to handle the correction logic
+function FoodResult({ result, preview, onReset, onManualEdit }: { result: any; preview: string | null; onReset: () => void; onManualEdit: () => void }) {
   const verdict = result.health_verdict || "";
   const color =
     verdict === "Healthy"   ? "text-green-400"  :
@@ -26,10 +27,16 @@ function FoodResult({ result, preview, onReset }: { result: any; preview: string
           <img src={preview} alt="Food" className="w-full md:w-1/3 rounded-xl object-cover aspect-square card-shadow shrink-0" />
         )}
         <div className="flex-1 space-y-4">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Identified Food</p>
-            <h2 className="text-3xl font-bold text-foreground">{result.food_name}</h2>
-            <p className="text-muted-foreground mt-1">{result.serving_size}</p>
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Identified Food</p>
+              <h2 className="text-3xl font-bold text-foreground">{result.food_name}</h2>
+              <p className="text-muted-foreground mt-1">{result.serving_size}</p>
+            </div>
+            {/* NEW: Manual Entry Fallback Button */}
+            <Button variant="ghost" size="sm" onClick={onManualEdit} className="text-xs text-primary hover:bg-primary/10">
+              <Edit2 className="h-3 w-3 mr-1" /> Not correct?
+            </Button>
           </div>
 
           <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${bg} ${color}`}>
@@ -41,7 +48,7 @@ function FoodResult({ result, preview, onReset }: { result: any; preview: string
             <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3">
               <AlertTriangle className="h-4 w-4 text-yellow-400 shrink-0 mt-0.5" />
               <p className="text-xs text-yellow-300">
-                No food was detected in this image. Please upload a clear photo of a meal or dish for accurate analysis.
+                No food was detected. Please upload a clearer photo or use manual search.
               </p>
             </div>
           )}
@@ -85,20 +92,12 @@ function FoodResult({ result, preview, onReset }: { result: any; preview: string
         ))}
       </div>
 
-      {result.micronutrients?.length > 0 && (
-        <div className="bg-secondary/20 rounded-xl p-4 mb-6">
-          <p className="text-xs font-semibold text-muted-foreground mb-2">Key Micronutrients</p>
-          <div className="flex flex-wrap gap-2">
-            {result.micronutrients.map((m: string, i: number) => (
-              <span key={i} className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">{m}</span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex justify-center">
-        <Button onClick={onReset} className="gradient-bg rounded-full px-8">
-          <RotateCcw className="h-4 w-4 mr-2" /> Analyze Another
+      <div className="flex justify-center gap-4">
+        <Button onClick={onReset} variant="outline" className="rounded-full px-8">
+          <RotateCcw className="h-4 w-4 mr-2" /> Reset
+        </Button>
+        <Button onClick={() => window.location.reload()} className="gradient-bg rounded-full px-8">
+          Done
         </Button>
       </div>
     </div>
@@ -145,24 +144,6 @@ function ReportResult({ result, onReset }: { result: any; onReset: () => void })
             </ul>
           </div>
         ))}
-      </div>
-
-      {result.see_doctor_if?.length > 0 && (
-        <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 mb-6">
-          <h4 className="font-semibold text-red-400 mb-2">🏥 See a Doctor If:</h4>
-          <ul className="space-y-1">
-            {result.see_doctor_if.map((s: string, i: number) => (
-              <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                <span className="text-red-400 shrink-0">•</span>{s}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="bg-secondary/30 rounded-lg p-3 flex gap-2 mb-6">
-        <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-        <p className="text-xs text-muted-foreground">AI-assisted analysis only — not a medical diagnosis. Always consult a qualified doctor.</p>
       </div>
 
       <div className="flex justify-center">
@@ -224,21 +205,17 @@ export default function Analyze() {
   const { toast } = useToast();
   const { userId, patientName, buildFormData, API } = usePatient();
 
-  // Medical report state
   const [reportLoading, setReportLoading] = useState(false);
   const [reportResult, setReportResult]   = useState<any>(null);
 
-  // Food state
   const [foodLoading, setFoodLoading]   = useState(false);
   const [foodPreview, setFoodPreview]   = useState<string | null>(null);
   const [foodResult, setFoodResult]     = useState<any>(null);
 
-    // Manual food entry state
   const [manualMode, setManualMode]   = useState(false);
   const [manualFood, setManualFood]   = useState("");
   const [manualLoading, setManualLoading] = useState(false);
 
-    // Camera state
   const [foodMode, setFoodMode]     = useState<"upload" | "camera">("upload");
   const videoRef    = useRef<HTMLVideoElement>(null);
   const canvasRef   = useRef<HTMLCanvasElement>(null);
@@ -246,17 +223,13 @@ export default function Analyze() {
   const [cameraActive, setCameraActive]   = useState(false);
   const [facingMode, setFacingMode]       = useState<"user" | "environment">("environment");
   
-  // ── Medical report upload → /analyze-disease ──
   const handleReportUpload = async (file: File) => {
     setReportLoading(true);
     setReportResult(null);
     const formData = buildFormData(file);
     try {
       const res = await fetch(`${API}/analyze-disease`, { method: "POST", body: formData });
-      if (!res.ok) {
-        const b = await res.json().catch(() => ({ detail: "Analysis failed." }));
-        throw new Error(b.detail ?? "Analysis failed.");
-      }
+      if (!res.ok) throw new Error("Analysis failed.");
       setReportResult(await res.json());
       toast({ title: "Report Analyzed", description: "Medical report analysis complete." });
     } catch (err: any) {
@@ -266,7 +239,6 @@ export default function Analyze() {
     }
   };
 
-  // ── Food image upload → /analyze-food ──
   const handleFoodUpload = async (file: File) => {
     setFoodPreview(URL.createObjectURL(file));
     setFoodResult(null);
@@ -274,12 +246,8 @@ export default function Analyze() {
     const formData = buildFormData(file);
     try {
       const res = await fetch(`${API}/analyze-food`, { method: "POST", body: formData });
-      if (!res.ok) {
-        const b = await res.json().catch(() => ({ detail: "Analysis failed." }));
-        throw new Error(b.detail ?? "Analysis failed.");
-      }
+      if (!res.ok) throw new Error("Analysis failed.");
       setFoodResult(await res.json());
-      toast({ title: "Analysis Complete", description: "Food analysis saved to your profile." });
     } catch (err: any) {
       toast({ title: "Failed", description: err.message, variant: "destructive" });
       setFoodPreview(null);
@@ -288,7 +256,6 @@ export default function Analyze() {
     }
   };
 
-    // Manual food text entry → /analyze-food-text
   const handleManualFoodSubmit = async () => {
     if (!manualFood.trim()) return;
     setManualLoading(true);
@@ -302,16 +269,12 @@ export default function Analyze() {
           patient_name: patientName || undefined,
         }),
       });
-      if (!res.ok) {
-        const b = await res.json().catch(() => ({ detail: "Analysis failed." }));
-        throw new Error(b.detail ?? "Analysis failed.");
-      }
+      if (!res.ok) throw new Error("Analysis failed.");
       const result = await res.json();
       result.food_name = manualFood.trim();
       setFoodResult(result);
       setManualMode(false);
       setManualFood("");
-      toast({ title: "Analysis Complete", description: "Food analysis saved to your profile." });
     } catch (err: any) {
       toast({ title: "Failed", description: err.message, variant: "destructive" });
     } finally {
@@ -319,7 +282,15 @@ export default function Analyze() {
     }
   };
 
-    // Camera functions
+  // Logic to allow user to correct the result
+  const triggerManualCorrection = () => {
+    const currentName = foodResult?.food_name !== "Unknown Food" ? foodResult?.food_name : "";
+    setFoodResult(null);
+    setFoodPreview(null);
+    setManualFood(currentName); // Pre-fill with what was detected so they can edit it
+    setManualMode(true);
+  };
+
   const startFoodCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -337,13 +308,6 @@ export default function Analyze() {
     streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
     setCameraActive(false);
-  };
-
-  const flipFoodCamera = async () => {
-    stopFoodCamera();
-    const next = facingMode === "environment" ? "user" : "environment";
-    setFacingMode(next);
-    setTimeout(startFoodCamera, 300);
   };
 
   const captureFoodPhoto = () => {
@@ -367,175 +331,90 @@ export default function Analyze() {
         <div className="container mx-auto px-6 max-w-4xl space-y-10">
 
           {/* Header */}
-          <div className="text-center animate-fade-in-up">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
-              Health <span className="gradient-text">Analysis</span>
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Upload your medical report or analyze food — results saved to your profile automatically.
-            </p>
+          <div className="text-center">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">Health Analysis</h1>
+            <p className="text-muted-foreground">Upload reports or analyze food meals.</p>
           </div>
 
-          {/* Medical Report Section */}
-          <div className="glass card-shadow rounded-2xl p-8 animate-fade-in-up">
-            <div className="flex items-center gap-3 mb-6">
-              <FileText className="h-5 w-5 text-primary" />
-              <div>
-                <h2 className="text-xl font-semibold text-foreground">Medical Report Analysis</h2>
-                <p className="text-sm text-muted-foreground">Upload a pathology or health report — PDF or image. Apollo, Thyrocare, SRL and others supported.</p>
-              </div>
-            </div>
-
+          {/* Medical Report */}
+          <div className="glass rounded-2xl p-8">
+            <div className="flex items-center gap-3 mb-6"><FileText className="text-primary" /> <h2 className="text-xl font-semibold">Medical Report</h2></div>
             {reportResult ? (
               <ReportResult result={reportResult} onReset={() => setReportResult(null)} />
             ) : (
-              <UploadBox
-                onFile={handleReportUpload}
-                accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
-                label="Drag & Drop Report or Click to Browse"
-                sublabel="Supports PDF or image — Apollo, Thyrocare, SRL and other standard reports"
-                icon={<FileText className="w-8 h-8 text-primary-foreground" />}
-                loading={reportLoading}
-              />
+              <UploadBox onFile={handleReportUpload} accept=".pdf,image/*" label="Upload Report" sublabel="PDF or Image" icon={<FileText />} loading={reportLoading} />
             )}
           </div>
 
-                   {/* Food Analysis Section */}
-          <div className="glass card-shadow rounded-2xl p-8 animate-fade-in-up">
-            <div className="flex items-center gap-3 mb-6">
-              <Utensils className="h-5 w-5 text-primary" />
-              <div>
-                <h2 className="text-xl font-semibold text-foreground">Clinical Food Analysis</h2>
-                <p className="text-sm text-muted-foreground">Upload a photo of any food — JPG, PNG, or WEBP. Get calories, nutrients, and health verdict.</p>
-              </div>
-            </div>
+          {/* Food Analysis Section */}
+          <div className="glass rounded-2xl p-8">
+            <div className="flex items-center gap-3 mb-6"><Utensils className="text-primary" /> <h2 className="text-xl font-semibold">Food Analysis</h2></div>
 
             {foodResult ? (
-              <FoodResult result={foodResult} preview={foodPreview} onReset={() => { setFoodResult(null); setFoodPreview(null); setManualMode(false); stopFoodCamera(); }} />
+              <FoodResult 
+                result={foodResult} 
+                preview={foodPreview} 
+                onReset={() => { setFoodResult(null); setFoodPreview(null); }} 
+                onManualEdit={triggerManualCorrection} 
+              />
             ) : manualMode ? (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Button variant="ghost" size="sm" onClick={() => setManualMode(false)} className="text-muted-foreground">
-                    ← Back to Upload
+                <Button variant="ghost" onClick={() => setManualMode(false)}>← Back</Button>
+                <div className="flex gap-3 bg-secondary/30 p-4 rounded-xl">
+                  <Search className="text-primary" />
+                  <input
+                    type="text"
+                    placeholder="Enter what you are eating..."
+                    className="flex-1 bg-transparent outline-none"
+                    value={manualFood}
+                    onChange={(e) => setManualFood(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleManualFoodSubmit()}
+                  />
+                  <Button onClick={handleManualFoodSubmit} disabled={manualLoading} className="gradient-bg">
+                    {manualLoading ? "Processing..." : "Analyze"}
                   </Button>
-                </div>
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-3 bg-secondary/30 rounded-xl p-4">
-                    <Search className="h-5 w-5 text-primary shrink-0" />
-                    <input
-                      type="text"
-                      placeholder="Enter food name (e.g., Dal Tadka, Butter Chicken, Paneer Tikka)"
-                      value={manualFood}
-                      onChange={(e) => setManualFood(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleManualFoodSubmit()}
-                      className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
-                    />
-                    <Button onClick={handleManualFoodSubmit} disabled={!manualFood.trim() || manualLoading} className="gradient-bg rounded-full px-6">
-                      {manualLoading ? "Analyzing..." : "Analyze"}
-                    </Button>
-                  </div>
-                  {manualLoading && (
-                    <div className="text-center py-4">
-                      <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2" />
-                      <p className="text-muted-foreground text-sm">Analyzing with AI...</p>
-                    </div>
-                  )}
                 </div>
               </div>
             ) : (
-             <div className="space-y-4">
-  {/* Mode toggle */}
-  <div className="flex rounded-xl bg-secondary/30 p-1 mb-4 gap-1">
-    <button onClick={() => { stopFoodCamera(); setFoodMode("upload"); }}
-      className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${foodMode === "upload" ? "gradient-bg text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground"}`}>
-      <Upload className="h-4 w-4" /> Upload Image
-    </button>
-    <button onClick={() => { setFoodMode("camera"); startFoodCamera(); }}
-      className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${foodMode === "camera" ? "gradient-bg text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground"}`}>
-      <Camera className="h-4 w-4" /> Open Camera
-    </button>
-  </div>
+              <div className="space-y-6">
+                <div className="flex rounded-xl bg-secondary/30 p-1 gap-1">
+                  <button onClick={() => { stopFoodCamera(); setFoodMode("upload"); }} className={`flex-1 py-2 rounded-lg ${foodMode === "upload" ? "gradient-bg text-white" : ""}`}>Upload</button>
+                  <button onClick={() => { setFoodMode("camera"); startFoodCamera(); }} className={`flex-1 py-2 rounded-lg ${foodMode === "camera" ? "gradient-bg text-white" : ""}`}>Camera</button>
+                </div>
 
-  {foodLoading && (
-    <div className="text-center py-12">
-      <div className="inline-block w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-      <p className="text-muted-foreground animate-pulse">Analyzing with AI...</p>
-    </div>
-  )}
-
-  {!foodLoading && foodMode === "upload" && (
-    <>
-      <UploadBox
-        onFile={handleFoodUpload}
-        accept="image/jpeg,image/jpg,image/png,image/webp"
-        label="Drag & Drop Food Image or Click to Browse"
-        sublabel="JPG, PNG, WEBP — get instant nutritional breakdown and health verdict"
-        icon={<Utensils className="w-8 h-8 text-primary-foreground" />}
-        loading={false}
-      />
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">Or</span>
-        </div>
-      </div>
-      <Button
-        variant="outline"
-        className="w-full rounded-xl py-6 border-dashed"
-        onClick={() => { setManualMode(true); setManualFood(""); }}
-      >
-        <Search className="h-4 w-4 mr-2" />
-        Type Food Name Manually
-      </Button>
-    </>
-  )}
-
-  {!foodLoading && foodMode === "camera" && (
-    <div className="space-y-4">
-      <div className="relative rounded-2xl overflow-hidden bg-black aspect-video">
-        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-        {!cameraActive && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-white/60 text-sm">Starting camera...</p>
-          </div>
-        )}
-        {cameraActive && (
-          <button onClick={flipFoodCamera} className="absolute top-3 right-3 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all">
-            <FlipHorizontal className="h-5 w-5" />
-          </button>
-        )}
-      </div>
-      <canvas ref={canvasRef} className="hidden" />
-      <div className="flex gap-3 justify-center">
-        <Button onClick={captureFoodPhoto} disabled={!cameraActive} className="gradient-bg rounded-full px-8">
-          <Camera className="h-4 w-4 mr-2" /> Capture & Analyze
-        </Button>
-        <Button variant="outline" onClick={() => { stopFoodCamera(); setFoodMode("upload"); }}>
-          <X className="h-4 w-4 mr-2" /> Cancel
-        </Button>
-      </div>
-    </div>
-  )}
-</div>
-          {/* Tips */}
-          <div className="grid grid-cols-3 gap-4 animate-fade-in-up">
-            {[
-              { icon: <Zap className="h-4 w-4 text-yellow-400" />, tip: "Results auto-saved to your Digital Twin profile" },
-              { icon: <CheckCircle className="h-4 w-4 text-green-400" />, tip: "Supports Apollo, Thyrocare, SRL medical reports" },
-              { icon: <Info className="h-4 w-4 text-blue-400" />, tip: "AI analysis only — always consult a doctor" },
-            ].map((t, i) => (
-              <div key={i} className="glass rounded-xl p-4 flex items-start gap-3">
-                <div className="shrink-0 mt-0.5">{t.icon}</div>
-                <p className="text-xs text-muted-foreground">{t.tip}</p>
+                {foodMode === "upload" ? (
+                  <>
+                    <UploadBox onFile={handleFoodUpload} accept="image/*" label="Upload Food" sublabel="JPG, PNG" icon={<Utensils />} loading={foodLoading} />
+                    <div className="text-center text-xs text-muted-foreground py-2">OR</div>
+                    <Button variant="outline" className="w-full border-dashed" onClick={() => setManualMode(true)}>
+                      <Search className="mr-2 h-4 w-4" /> Type Manually
+                    </Button>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="aspect-video bg-black rounded-2xl overflow-hidden relative">
+                      <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex justify-center gap-3">
+                      <Button onClick={captureFoodPhoto} className="gradient-bg px-8"><Camera className="mr-2" /> Capture</Button>
+                      <Button variant="outline" onClick={() => { stopFoodCamera(); setFoodMode("upload"); }}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Fixed Tips Section Placement */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-border">
+                    <div className="flex gap-2 text-xs text-muted-foreground"><Zap className="h-4 w-4 text-yellow-400" /> Results auto-saved.</div>
+                    <div className="flex gap-2 text-xs text-muted-foreground"><CheckCircle className="h-4 w-4 text-green-400" /> Multi-report support.</div>
+                    <div className="flex gap-2 text-xs text-muted-foreground"><Info className="h-4 w-4 text-blue-400" /> AI analysis only.</div>
+                </div>
               </div>
-            ))}
+            )}
           </div>
-
         </div>
       </main>
       <FooterSection />
+      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 }

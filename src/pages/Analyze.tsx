@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import FooterSection from "@/components/FooterSection";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePatient } from "@/hooks/usePatient";
 import {
   RotateCcw, FileText, Utensils, Upload,
-  CheckCircle, AlertTriangle, Info, Zap, Search,
+  CheckCircle, AlertTriangle, Info, Zap, Search, Camera, FlipHorizontal, X,
 } from "lucide-react";
 
 // ── Food Result ───────────────────────────────────────────
@@ -238,6 +238,14 @@ export default function Analyze() {
   const [manualFood, setManualFood]   = useState("");
   const [manualLoading, setManualLoading] = useState(false);
 
+    // Camera state
+  const [foodMode, setFoodMode]     = useState<"upload" | "camera">("upload");
+  const videoRef    = useRef<HTMLVideoElement>(null);
+  const canvasRef   = useRef<HTMLCanvasElement>(null);
+  const streamRef   = useRef<MediaStream | null>(null);
+  const [cameraActive, setCameraActive]   = useState(false);
+  const [facingMode, setFacingMode]       = useState<"user" | "environment">("environment");
+  
   // ── Medical report upload → /analyze-disease ──
   const handleReportUpload = async (file: File) => {
     setReportLoading(true);
@@ -311,6 +319,47 @@ export default function Analyze() {
     }
   };
 
+    // Camera functions
+  const startFoodCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      streamRef.current = stream;
+      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
+      setCameraActive(true);
+    } catch {
+      toast({ title: "Camera Error", description: "Could not access camera.", variant: "destructive" });
+    }
+  };
+
+  const stopFoodCamera = () => {
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+    setCameraActive(false);
+  };
+
+  const flipFoodCamera = async () => {
+    stopFoodCamera();
+    const next = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(next);
+    setTimeout(startFoodCamera, 300);
+  };
+
+  const captureFoodPhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const v = videoRef.current, c = canvasRef.current;
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    c.getContext("2d")?.drawImage(v, 0, 0);
+    c.toBlob(blob => {
+      if (!blob) return;
+      const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+      stopFoodCamera();
+      setFoodMode("upload");
+      handleFoodUpload(file);
+    }, "image/jpeg", 0.92);
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -362,7 +411,7 @@ export default function Analyze() {
             </div>
 
             {foodResult ? (
-              <FoodResult result={foodResult} preview={foodPreview} onReset={() => { setFoodResult(null); setFoodPreview(null); setManualMode(false); }} />
+              <FoodResult result={foodResult} preview={foodPreview} onReset={() => { setFoodResult(null); setFoodPreview(null); setManualMode(false); stopFoodCamera(); }} />
             ) : manualMode ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
@@ -394,34 +443,82 @@ export default function Analyze() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                <UploadBox
-                  onFile={handleFoodUpload}
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  label="Drag & Drop Food Image or Click to Browse"
-                  sublabel="JPG, PNG, WEBP — get instant nutritional breakdown and health verdict"
-                  icon={<Utensils className="w-8 h-8 text-primary-foreground" />}
-                  loading={foodLoading}
-                />
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Or</span>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full rounded-xl py-6 border-dashed"
-                  onClick={() => { setManualMode(true); setManualFood(""); }}
-                >
-                  <Search className="h-4 w-4 mr-2" />
-                  Type Food Name Manually
-                </Button>
-              </div>
-            )}
+             <div className="space-y-4">
+  {/* Mode toggle */}
+  <div className="flex rounded-xl bg-secondary/30 p-1 mb-4 gap-1">
+    <button onClick={() => { stopFoodCamera(); setFoodMode("upload"); }}
+      className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${foodMode === "upload" ? "gradient-bg text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground"}`}>
+      <Upload className="h-4 w-4" /> Upload Image
+    </button>
+    <button onClick={() => { setFoodMode("camera"); startFoodCamera(); }}
+      className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${foodMode === "camera" ? "gradient-bg text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground"}`}>
+      <Camera className="h-4 w-4" /> Open Camera
+    </button>
+  </div>
+
+  {foodLoading && (
+    <div className="text-center py-12">
+      <div className="inline-block w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+      <p className="text-muted-foreground animate-pulse">Analyzing with AI...</p>
+    </div>
+  )}
+
+  {!foodLoading && foodMode === "upload" && (
+    <>
+      <UploadBox
+        onFile={handleFoodUpload}
+        accept="image/jpeg,image/jpg,image/png,image/webp"
+        label="Drag & Drop Food Image or Click to Browse"
+        sublabel="JPG, PNG, WEBP — get instant nutritional breakdown and health verdict"
+        icon={<Utensils className="w-8 h-8 text-primary-foreground" />}
+        loading={false}
+      />
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card px-2 text-muted-foreground">Or</span>
+        </div>
+      </div>
+      <Button
+        variant="outline"
+        className="w-full rounded-xl py-6 border-dashed"
+        onClick={() => { setManualMode(true); setManualFood(""); }}
+      >
+        <Search className="h-4 w-4 mr-2" />
+        Type Food Name Manually
+      </Button>
+    </>
+  )}
+
+  {!foodLoading && foodMode === "camera" && (
+    <div className="space-y-4">
+      <div className="relative rounded-2xl overflow-hidden bg-black aspect-video">
+        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+        {!cameraActive && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="text-white/60 text-sm">Starting camera...</p>
           </div>
+        )}
+        {cameraActive && (
+          <button onClick={flipFoodCamera} className="absolute top-3 right-3 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all">
+            <FlipHorizontal className="h-5 w-5" />
+          </button>
+        )}
+      </div>
+      <canvas ref={canvasRef} className="hidden" />
+      <div className="flex gap-3 justify-center">
+        <Button onClick={captureFoodPhoto} disabled={!cameraActive} className="gradient-bg rounded-full px-8">
+          <Camera className="h-4 w-4 mr-2" /> Capture & Analyze
+        </Button>
+        <Button variant="outline" onClick={() => { stopFoodCamera(); setFoodMode("upload"); }}>
+          <X className="h-4 w-4 mr-2" /> Cancel
+        </Button>
+      </div>
+    </div>
+  )}
+</div>
           {/* Tips */}
           <div className="grid grid-cols-3 gap-4 animate-fade-in-up">
             {[

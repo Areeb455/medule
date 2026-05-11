@@ -217,14 +217,14 @@ async def analyze_food(
                     t = p.extract_text()
                     if t:
                         text += t + "\n"
-            messages = [{"role": "user", "content": FOOD_PROMPT + f"\n\nDocument content:\n{text[:8000]}"}]
+            messages = [{"role": "user", "content": FOOD_TEXT_PROMPT + f"\n\nDocument content:\n{text[:8000]}"}]
         else:
             b64 = image_to_base64(temp_path)
             messages = [{
                 "role": "user",
                 "content": [
                     {"type": "image_url", "image_url": {"url": f"data:{image.content_type};base64,{b64}"}},
-                    {"type": "text", "text": FOOD_PROMPT},
+                    {"type": "text", "text": FOOD_TEXT_PROMPT},
                 ],
             }]
 

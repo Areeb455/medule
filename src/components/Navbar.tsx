@@ -1,20 +1,29 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/clerk-react";
 import { Menu, X, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const NAV_LINKS = [
-  { href: "/analyze",   label: "Food AI" },
-  { href: "/diagnose",  label: "Disease AI" },
-  { href: "/habits",    label: "Habits" },
-  { href: "/dashboard", label: "Digital Twin" },
-  { href: "/patients",  label: "Patients" },
+const ALLOWED_EMAILS = [
+  "yusufusmani910@gmail.com",
+  "areebimam466@gmail.com"
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { pathname }    = useLocation();
+  const { user } = useUser();
+
+  const userEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
+  const isAllowed = ALLOWED_EMAILS.includes(userEmail);
+
+  const NAV_LINKS = [
+    { href: "/analyze",   label: "Food AI" },
+    { href: "/diagnose",  label: "Disease AI" },
+    { href: "/habits",    label: "Habits" },
+    { href: "/dashboard", label: "Digital Twin" },
+    ...(isAllowed ? [{ href: "/patients", label: "Patients" }] : []),
+  ];
 
   return (
     <nav className="fixed top-0 inset-x-0 z-50 glass border-b border-border/50">

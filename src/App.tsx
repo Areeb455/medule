@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import Index from "./pages/Index";
 import Analyze from "./pages/Analyze";
 import Diagnose from "./pages/Diagnose";
@@ -19,6 +19,20 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function PatientsPageAccess() {
+  const { user } = useUser();
+  const userEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
+  const ALLOWED_EMAILS = [
+    "yusufusmani910@gmail.com",
+    "areebimam466@gmail.com"
+  ];
+  
+  if (!ALLOWED_EMAILS.includes(userEmail)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <Patients />;
+}
 const App = () => (
   <BrowserRouter>
     <Routes>
@@ -31,7 +45,11 @@ const App = () => (
       <Route path="/diagnose"  element={<ProtectedRoute><Diagnose /></ProtectedRoute>} />
       <Route path="/habits"    element={<ProtectedRoute><Habits /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/patients"  element={<ProtectedRoute><Patients /></ProtectedRoute>} />
+           <Route path="/patients"  element={
+        <ProtectedRoute>
+          <PatientsPageAccess />
+        </ProtectedRoute>
+      } />
 
      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

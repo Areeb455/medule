@@ -24,7 +24,8 @@ function PatientsPageAccess() {
   const userEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
   const ALLOWED_EMAILS = [
     "yusufusmani910@gmail.com",
-    "areebimam466@gmail.com"
+    "areebimam466@gmail.com",
+    "omsh0401@gmail.com"
   ];
   
   if (!ALLOWED_EMAILS.includes(userEmail)) {

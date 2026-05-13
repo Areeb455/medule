@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 const ALLOWED_EMAILS = [
   "yusufusmani910@gmail.com",
   "areebimam466@gmail.com"
+  "omsh0401@gmail.com",
+  "areebimam455@gmail.com"
 ];
 
 export default function Navbar() {

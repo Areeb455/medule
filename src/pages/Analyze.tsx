@@ -124,6 +124,12 @@ function ReportResult({ result, onReset }: { result: any; onReset: () => void })
         <h2 className="text-2xl font-bold text-foreground">{result.condition_name}</h2>
         <p className="text-muted-foreground mt-2">{result.brief_description}</p>
       </div>
+            {result.report_summary && (
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6">
+          <h4 className="font-semibold text-blue-400 mb-2">📋 Detailed Report Summary</h4>
+          <p className="text-sm text-muted-foreground whitespace-pre-line">{result.report_summary}</p>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         {[

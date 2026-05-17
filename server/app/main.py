@@ -186,30 +186,34 @@ CRITICAL RULES:
 - Provide reasonable estimated nutritional values based on standard serving sizes for this food item.
 - If the food name is unclear or unrecognizable, return food_name "Unknown Food" with calories: 0, macronutrients: {"protein": 0, "carbs": 0, "fats": 0}, micronutrients: [], health_verdict: "Moderate", health_benefits: ["Unable to analyze — food not recognized"], concerns: ["Please provide a clearer food name"], alternatives: ["Try describing your meal more specifically"]."""
 
-DISEASE_PROMPT = """You are an expert medical AI assistant. Analyze this image or document.
+DISEASE_PROMPT = """You are an expert medical report analyst AI. Analyze this medical report or document carefully.
 Return ONLY a valid JSON object with NO explanation, NO markdown, NO code fences.
+
+This is a GENERAL MEDICAL REPORT analysis - it may contain blood tests, urine tests, health checkups, pathology reports, or any medical document.
 
 Exact structure required:
 {
-  "condition_name": "name of condition or 'Report Summary' if no specific disease found",
-  "brief_description": "detailed summary of the report findings in plain English",
+  "condition_name": "name of condition found OR 'Health Report Summary' if no specific disease",
+  "brief_description": "detailed explanation of what this report shows in simple terms",
   "severity": "Mild",
-  "causes": ["cause 1", "cause 2"],
-  "treatments": ["treatment 1", "treatment 2"],
-  "risks": ["risk 1", "risk 2"],
-  "see_doctor_if": ["warning sign 1", "warning sign 2"],
-  "report_summary": "overall summary of the medical report with key values and findings"
+  "causes": ["relevant causes or factors"],
+  "treatments": ["recommendations or treatments if needed"],
+  "risks": ["health risks if any"],
+  "see_doctor_if": ["warning signs to watch for"],
+  "report_summary": "comprehensive summary of ALL test results, values, and findings from this report - list every metric, value, and parameter you can extract"
 }
 
 CRITICAL RULES:
 - severity must be exactly one of: Mild, Moderate, Severe
-- All array fields must have at least 1 item.
-- If NO SPECIFIC DISEASE/CONDITION is found in the report:
-  - Use condition_name: "Report Summary"
-  - Extract ALL values/metrics from the report (blood test values, BMI, blood pressure, etc.)
-  - Provide a helpful summary of what the report shows
-  - Use severity: "Mild" and explain that no specific disease was detected but include all report details
-- Always provide useful information from the report - even if it's just normal values
+- ALL array fields must have at least 1 item
+- This is a GENERAL medical report - extract EVERY piece of information from it
+- Extract ALL numeric values: blood counts, glucose, cholesterol, blood pressure, BMI, organ function tests, urine analysis, vitamin levels, etc.
+- If everything appears NORMAL: still provide a complete summary listing all normal values
+- If ABNORMAL values found: highlight them with explanations
+- NEVER say "no condition detected" - instead provide a full "Health Report Summary" with ALL extracted data
+- If it's a blood test, list every parameter with its value and normal range
+- If it's a health checkup, summarize all vitals and findings
+- Always extract useful information - even routine tests contain valuable data
 - This is AI analysis only — not a substitute for professional medical diagnosis."""
 
 # ============================================================

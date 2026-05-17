@@ -191,19 +191,26 @@ Return ONLY a valid JSON object with NO explanation, NO markdown, NO code fences
 
 Exact structure required:
 {
-  "condition_name": "name of condition",
-  "brief_description": "simple explanation in plain English",
+  "condition_name": "name of condition or 'Report Summary' if no specific disease found",
+  "brief_description": "detailed summary of the report findings in plain English",
   "severity": "Mild",
   "causes": ["cause 1", "cause 2"],
   "treatments": ["treatment 1", "treatment 2"],
   "risks": ["risk 1", "risk 2"],
-  "see_doctor_if": ["warning sign 1", "warning sign 2"]
+  "see_doctor_if": ["warning sign 1", "warning sign 2"],
+  "report_summary": "overall summary of the medical report with key values and findings"
 }
 
-severity must be exactly one of: Mild, Moderate, Severe
-All array fields must have at least 1 item.
-If no condition visible, use condition_name: "No condition detected" and severity: "Mild".
-This is AI analysis only — not a substitute for professional medical diagnosis."""
+CRITICAL RULES:
+- severity must be exactly one of: Mild, Moderate, Severe
+- All array fields must have at least 1 item.
+- If NO SPECIFIC DISEASE/CONDITION is found in the report:
+  - Use condition_name: "Report Summary"
+  - Extract ALL values/metrics from the report (blood test values, BMI, blood pressure, etc.)
+  - Provide a helpful summary of what the report shows
+  - Use severity: "Mild" and explain that no specific disease was detected but include all report details
+- Always provide useful information from the report - even if it's just normal values
+- This is AI analysis only — not a substitute for professional medical diagnosis."""
 
 # ============================================================
 # HEALTH CHECK

@@ -60,6 +60,8 @@ app = FastAPI(title="Medule API", version="2.2.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        'https://medule.health',
+        'https://www.medule.health',
         "https://medule-1.onrender.com",
         "http://localhost:5173",
         "http://localhost:3000",

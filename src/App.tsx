@@ -28,32 +28,32 @@ function PatientsPageAccess() {
     "omsh0401@gmail.com",
     "areebimam455@gmail.com"
   ];
-  
+
   if (!ALLOWED_EMAILS.includes(userEmail)) {
     return <Navigate to="/dashboard" replace />;
   }
-  
+
   return <Patients />;
 }
 const App = () => (
   <BrowserRouter>
     <Routes>
       {/* Public */}
-      <Route path="/"         element={<Index />} />
-      <Route path="/sign-in"  element={<SignInPage />} />
+      <Route path="/" element={<Index />} />
+      <Route path="/sign-in" element={<SignInPage />} />
 
       {/* Protected */}
-      <Route path="/analyze"   element={<ProtectedRoute><Analyze /></ProtectedRoute>} />
-      <Route path="/diagnose"  element={<ProtectedRoute><Diagnose /></ProtectedRoute>} />
-      <Route path="/habits"    element={<ProtectedRoute><Habits /></ProtectedRoute>} />
+      <Route path="/analyze" element={<ProtectedRoute><Analyze /></ProtectedRoute>} />
+      <Route path="/diagnose" element={<ProtectedRoute><Diagnose /></ProtectedRoute>} />
+      <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-           <Route path="/patients"  element={
+      <Route path="/patients" element={
         <ProtectedRoute>
           <PatientsPageAccess />
         </ProtectedRoute>
       } />
 
-     <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   </BrowserRouter>
 );

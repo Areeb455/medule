@@ -13,16 +13,16 @@ const ALLOWED_EMAILS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const { pathname }    = useLocation();
+  const { pathname } = useLocation();
   const { user } = useUser();
 
   const userEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
   const isAllowed = ALLOWED_EMAILS.includes(userEmail);
 
   const NAV_LINKS = [
-    { href: "/analyze",   label: "Food AI" },
-    { href: "/diagnose",  label: "Disease AI" },
-    { href: "/habits",    label: "Habits" },
+    { href: "/analyze", label: "Food AI" },
+    { href: "/diagnose", label: "Disease AI" },
+    { href: "/habits", label: "Habits" },
     { href: "/dashboard", label: "Digital Twin" },
     ...(isAllowed ? [{ href: "/patients", label: "Patients" }] : []),
   ];
@@ -43,11 +43,10 @@ export default function Navbar() {
             <Link
               key={link.href}
               to={link.href}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                pathname === link.href
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${pathname === link.href
                   ? "gradient-bg text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-              }`}
+                }`}
             >
               {link.label}
             </Link>
@@ -83,11 +82,10 @@ export default function Navbar() {
               key={link.href}
               to={link.href}
               onClick={() => setOpen(false)}
-              className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                pathname === link.href
+              className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${pathname === link.href
                   ? "gradient-bg text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-              }`}
+                }`}
             >
               {link.label}
             </Link>

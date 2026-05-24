@@ -4,7 +4,7 @@ import { FileText, UtensilsCrossed, Stethoscope, CalendarCheck, Building2, Finge
 import { Button } from "@/components/ui/button";
 
 const features = [
-  { icon: FileText, title: "PDF Parser", text: "Extracts data from medical reports and documents.", href: "/analyze" },
+  { icon: FileText, title: "PDF Parser", text: "Extracts data from medical reports and documents.", href: "/medical-report" },
   { icon: UtensilsCrossed, title: "Food Recognition Model", text: "Analyzes dietary intake.", href: "/analyze" },
   { icon: Stethoscope, title: "Disease Recognition Model", text: "Identifies potential conditions from data.", href: "/diagnose" },
   { icon: CalendarCheck, title: "Habit Tracker", text: "Monitors and logs daily health habits.", href: "/habits" },

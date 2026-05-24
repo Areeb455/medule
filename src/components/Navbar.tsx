@@ -20,7 +20,8 @@ export default function Navbar() {
   const isAllowed = ALLOWED_EMAILS.includes(userEmail);
 
   const NAV_LINKS = [
-    { href: "/analyze", label: "Food AI" },
+    { href: "/medical-report",  label: "Medical Report" },
+    { href: "/analyze", label: "Food AI" }, 
     { href: "/diagnose", label: "Disease AI" },
     { href: "/habits", label: "Habits" },
     { href: "/dashboard", label: "Digital Twin" },

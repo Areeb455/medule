@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import Index from "./pages/Index";
+import MedicalReport from "./pages/MedicalReport";
 import Analyze from "./pages/Analyze";
 import Diagnose from "./pages/Diagnose";
 import Habits from "./pages/Habits";
@@ -43,6 +44,7 @@ const App = () => (
       <Route path="/sign-in" element={<SignInPage />} />
 
       {/* Protected */}
+      <Route path="/medical-report" element={<ProtectedRoute><MedicalReport /></ProtectedRoute>} />
       <Route path="/analyze" element={<ProtectedRoute><Analyze /></ProtectedRoute>} />
       <Route path="/diagnose" element={<ProtectedRoute><Diagnose /></ProtectedRoute>} />
       <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />

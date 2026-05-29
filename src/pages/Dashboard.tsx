@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { usePatient } from "@/hooks/usePatient";
 import {
-  Brain, Heart, Activity, Clock, Utensils,
+  Brain, Heart, Activity, Clock, Utensils, Save
   Stethoscope, RefreshCw, TrendingUp, AlertCircle, User,
 } from "lucide-react";
 import {
@@ -24,6 +24,35 @@ export default function Dashboard() {
   const [data, setData]       = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
+
+  const [vitals, setVitals] = useState<any>({ age: "", height_cm: "", weight_kg: "", gender: "" });
+const [vitalsSaving, setVitalsSaving] = useState(false);
+
+const handleSaveVitals = async () => {
+  if (!userId) return;
+  setVitalsSaving(true);
+  try {
+    const headers = await authHeaders();
+    const bmi = vitals.height_cm && vitals.weight_kg
+      ? parseFloat((parseFloat(vitals.weight_kg) / Math.pow(parseFloat(vitals.height_cm) / 100, 2)).toFixed(1))
+      : null;
+    const res = await fetch(`${API}/save-vitals`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: userId,
+        patient_name: patientName || user?.fullName || "",
+        vitals: { ...vitals, bmi },
+        bmi,
+      }),
+    });
+    if (!res.ok) throw new Error("Failed to save.");
+    toast({ title: "Vitals Saved", description: "Your Digital Twin has been updated." });
+    fetchTwin();
+  } catch (err: any) {
+    toast({ title: "Failed", description: err.message, variant: "destructive" });
+  } finally { setVitalsSaving(false); }
+};
 
   const fetchTwin = async () => {
     if (!userId) return;
@@ -111,6 +140,54 @@ export default function Dashboard() {
 
           {data && !loading && (
             <div className="space-y-6 animate-fade-in-up">
+              {/* Vitals Quick Entry */}
+<div className="glass card-shadow rounded-2xl p-6">
+  <div className="flex items-center gap-2 mb-5">
+    <Heart className="h-5 w-5 text-primary" />
+    <h3 className="text-lg font-semibold text-foreground">Body Vitals</h3>
+    <span className="ml-auto text-xs text-muted-foreground bg-secondary/40 px-3 py-1 rounded-full">
+      Helps improve your AI summary
+    </span>
+  </div>
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+    {[
+      { label: "Age",    key: "age",       unit: "yrs", placeholder: "e.g. 28",      type: "number" },
+      { label: "Height", key: "height_cm", unit: "cm",  placeholder: "e.g. 170",     type: "number" },
+      { label: "Weight", key: "weight_kg", unit: "kg",  placeholder: "e.g. 65",      type: "number" },
+      { label: "Gender", key: "gender",    unit: "",    placeholder: "Male / Female", type: "text"   },
+    ].map(f => (
+      <div key={f.key}>
+        <label className="text-xs text-muted-foreground mb-1.5 block">
+          {f.label} {f.unit && <span className="opacity-60">({f.unit})</span>}
+        </label>
+        <input
+          type={f.type}
+          placeholder={f.placeholder}
+          defaultValue={data.vitals?.[f.key] || ""}
+          onChange={e => setVitals((v: any) => ({ ...v, [f.key]: e.target.value }))}
+          className="w-full bg-secondary/30 border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50"
+        />
+      </div>
+    ))}
+  </div>
+  {vitals.height_cm && vitals.weight_kg && (
+    <div className="bg-secondary/30 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
+      <span className="text-sm text-muted-foreground">Calculated BMI</span>
+      {(() => {
+        const bmi = (parseFloat(vitals.weight_kg) / Math.pow(parseFloat(vitals.height_cm) / 100, 2)).toFixed(1);
+        const label = parseFloat(bmi) < 18.5 ? "Underweight" : parseFloat(bmi) < 25 ? "Normal" : parseFloat(bmi) < 30 ? "Overweight" : "Obese";
+        const color = label === "Normal" ? "text-green-400" : label === "Underweight" ? "text-blue-400" : label === "Overweight" ? "text-yellow-400" : "text-red-400";
+        return <span className={`text-xl font-bold ${color}`}>{bmi} <span className="text-sm font-medium">{label}</span></span>;
+      })()}
+    </div>
+  )}
+  <div className="flex justify-end">
+    <Button onClick={handleSaveVitals} disabled={vitalsSaving} className="gradient-bg rounded-full px-6">
+      <Save className="h-4 w-4 mr-2" />
+      {vitalsSaving ? "Saving..." : "Save Vitals"}
+    </Button>
+  </div>
+</div>
 
               {/* Patient card */}
               <div className="glass card-shadow rounded-2xl p-6 flex items-center gap-6">

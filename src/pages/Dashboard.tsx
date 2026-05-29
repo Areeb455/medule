@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { usePatient } from "@/hooks/usePatient";
 import {
-  Brain, Heart, Activity, Clock, Utensils, Save
+  Brain, Heart, Activity, Clock, Utensils, Save,
   Stethoscope, RefreshCw, TrendingUp, AlertCircle, User,
 } from "lucide-react";
 import {

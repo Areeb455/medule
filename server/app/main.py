@@ -87,12 +87,6 @@ class ManualLogEntry(BaseModel):
     category:     str
     summary:      str
 
-class VitalsEntry(BaseModel):
-    user_id:      str
-    patient_name: str
-    vitals:       dict
-    bmi:          float | None = None
-
 # ─── Helpers ──────────────────────────────────────────────
 def serialize(doc) -> dict:
     if doc is None:
@@ -306,7 +300,7 @@ async def analyze_food(
             os.remove(temp_path)
 
 # ============================================================
-# FOOD ANALYSIS (TEXT BASED)
+# FOOD ANALYSIS (TEXT/BASED)
 # ============================================================
 class FoodTextInput(BaseModel):
     food_name: str
@@ -469,28 +463,6 @@ async def log_manual(entry: ManualLogEntry):
     return {"status": "saved"}
 
 # ============================================================
-# SAVE VITALS
-# ============================================================
-@app.post("/save-vitals")
-async def save_vitals(entry: VitalsEntry):
-    if db is None:
-        raise HTTPException(status_code=503, detail="Database not configured.")
-    now = datetime.now(timezone.utc)
-    entry.vitals["updated_at"] = now.isoformat()
-    if entry.bmi:
-        entry.vitals["bmi"] = entry.bmi
-    await db.patients.update_one(
-        {"user_id": entry.user_id},
-        {"$set": {
-            "patient_name": entry.patient_name,
-            "vitals":       entry.vitals,
-            "last_active":  now.isoformat(),
-        }},
-        upsert=True,
-    )
-    return {"status": "saved"}
-
-# ============================================================
 # PATIENT MANAGEMENT
 # ============================================================
 @app.get("/patients")
@@ -531,22 +503,9 @@ async def digital_twin_summary(user_id: str):
     disease_logs = [d async for d in db.disease_logs.find({"user_id": user_id}).sort("timestamp", -1).limit(10)]
     habit_logs   = [d async for d in db.habit_logs.find({"user_id": user_id}).sort("logged_at", -1).limit(10)]
 
-    vitals = patient.get("vitals", {})
-    vitals_summary = ""
-    if vitals:
-        parts = []
-        if vitals.get("age"):       parts.append(f"Age: {vitals['age']} yrs")
-        if vitals.get("gender"):    parts.append(f"Gender: {vitals['gender']}")
-        if vitals.get("height_cm"): parts.append(f"Height: {vitals['height_cm']} cm")
-        if vitals.get("weight_kg"): parts.append(f"Weight: {vitals['weight_kg']} kg")
-        if vitals.get("bmi"):       parts.append(f"BMI: {vitals['bmi']}")
-        if parts:
-            vitals_summary = "Patient Vitals: " + ", ".join(parts)
-
     prompt = f"""You are a health AI generating a Digital Twin health report.
 
 Patient: {patient.get('patient_name', 'Unknown')}
-{vitals_summary}
 
 Recent Food Logs:
 {chr(10).join([d.get('summary','') for d in food_logs]) or 'No food data yet.'}
@@ -574,7 +533,6 @@ Be warm, encouraging, and constructive. Use plain English."""
         "disease_count":   patient.get("disease_count", 0),
         "habit_count":     patient.get("habit_count", 0),
         "last_active":     patient.get("last_active"),
-        "vitals":          vitals,
         "recent_food":     [serialize(d) for d in food_logs],
         "recent_diseases": [serialize(d) for d in disease_logs],
         "recent_habits":   [serialize(d) for d in habit_logs],

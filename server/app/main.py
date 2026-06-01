@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-VISION_MODEL       = "gemini-1.0-pro-vision-latest"
-TEXT_MODEL         = "gemini-1.0-pro"
+VISION_MODEL       = "gemini-1.5-flash"
+TEXT_MODEL         =  "gemini-1.5-flash"
 UPLOAD_DIR         = "/tmp/medule_uploads"
 MONGODB_URI        = os.getenv("MONGODB_URI", "")
 

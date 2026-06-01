@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-VISION_MODEL       = "gemini-pro-vision"
-TEXT_MODEL         = "gemini-pro"
+VISION_MODEL       = "gemini-1.0-pro-vision-latest"
+TEXT_MODEL         = "gemini-1.0-pro"
 UPLOAD_DIR         = "/tmp/medule_uploads"
 MONGODB_URI        = os.getenv("MONGODB_URI", "")
 
@@ -326,7 +326,7 @@ async def analyze_food_text(input: FoodTextInput):
 
     try:
         messages = [{"role": "user", "content": FOOD_TEXT_PROMPT + f"\n\nFood name: {input.food_name.strip()}"}]
-        raw = await call_gemini(messages)
+        raw = await call_gemini(messages, model=TEXT_MODEL)
         result = json.loads(clean_json(raw))
         result["food_name"] = input.food_name.strip()
 

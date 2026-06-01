@@ -1,6 +1,6 @@
 """
-Medule - FastAPI Backend v2.2
-AI: OpenRouter (free models)
+Medule - FastAPI Backend v2.3
+AI: Google Gemini (google-genai SDK)
 DB: MongoDB Atlas
 """
 
@@ -16,7 +16,8 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import asyncio
 
 logging.basicConfig(level=logging.INFO)
@@ -24,14 +25,15 @@ logger = logging.getLogger(__name__)
 
 # ─── Config ───────────────────────────────────────────────
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-VISION_MODEL       = "gemini-1.5-flash"
-TEXT_MODEL         =  "gemini-1.5-flash"
+VISION_MODEL       = "gemini-2.0-flash"
+TEXT_MODEL         = "gemini-2.0-flash"
 UPLOAD_DIR         = "/tmp/medule_uploads"
 MONGODB_URI        = os.getenv("MONGODB_URI", "")
 
+gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 
 # ─── MongoDB globals ──────────────────────────────────────
 mongo_client = None
@@ -122,12 +124,10 @@ async def upsert_patient(user_id: str, patient_name: str):
 
 # ─── Gemini ───────────────────────────────────────────────
 async def call_gemini(messages: list, model: str = None) -> str:
-    if not GEMINI_API_KEY:
+    if not gemini_client:
         raise HTTPException(status_code=503, detail="AI service not configured (GEMINI_API_KEY).")
     
     target_model = model or VISION_MODEL
-    gemini_model = genai.GenerativeModel(target_model)
-    
     content = messages[0]["content"]
     
     if isinstance(content, str):
@@ -141,13 +141,17 @@ async def call_gemini(messages: list, model: str = None) -> str:
                 url = c["image_url"]["url"]
                 prefix, b64_str = url.split("base64,")
                 mime_type = prefix.split(":")[1].split(";")[0]
-                parts.append({
-                    "mime_type": mime_type,
-                    "data": base64.b64decode(b64_str)
-                })
-                
+                parts.append(types.Part.from_bytes(
+                    data=base64.b64decode(b64_str),
+                    mime_type=mime_type,
+                ))
+
     try:
-        response = await gemini_model.generate_content_async(parts)
+        response = await asyncio.to_thread(
+            gemini_client.models.generate_content,
+            model=target_model,
+            contents=parts,
+        )
         return response.text
     except Exception as e:
         logger.error(f"Gemini error: {e}")

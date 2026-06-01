@@ -7,3 +7,4 @@ motor
 pymongo
 httpx
 python-jose[cryptography]
+google-generativeai

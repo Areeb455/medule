@@ -16,15 +16,18 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
+import google.generativeai as genai
+import asyncio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ─── Config ───────────────────────────────────────────────
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_URL     = "https://openrouter.ai/api/v1/chat/completions"
-VISION_MODEL       = "openrouter/auto"
-TEXT_MODEL         = "openrouter/auto"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+VISION_MODEL       = "gemini-1.5-flash"
+TEXT_MODEL         = "gemini-1.5-flash"
 UPLOAD_DIR         = "/tmp/medule_uploads"
 MONGODB_URI        = os.getenv("MONGODB_URI", "")
 
@@ -117,29 +120,38 @@ async def upsert_patient(user_id: str, patient_name: str):
         {"$set": {"patient_name": patient_name, "last_active": datetime.now(timezone.utc).isoformat()}}
     )
 
-# ─── OpenRouter ───────────────────────────────────────────
-async def call_openrouter(messages: list, model: str = None) -> str:
-    if not OPENROUTER_API_KEY:
-        raise HTTPException(status_code=503, detail="AI service not configured.")
-    async with httpx.AsyncClient(timeout=60) as client:
-        response = await client.post(
-            OPENROUTER_URL,
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type":  "application/json",
-                "HTTP-Referer":  "https://medule-1.onrender.com",
-                "X-Title":       "Medule Health AI",
-            },
-            json={
-                "model":      model or VISION_MODEL,
-                "messages":   messages,
-                "max_tokens": 1500,
-            },
-        )
-    if response.status_code != 200:
-        logger.error(f"OpenRouter error: {response.text}")
-        raise HTTPException(status_code=500, detail=f"AI service error: {response.status_code}")
-    return response.json()["choices"][0]["message"]["content"]
+# ─── Gemini ───────────────────────────────────────────────
+async def call_gemini(messages: list, model: str = None) -> str:
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=503, detail="AI service not configured (GEMINI_API_KEY).")
+    
+    target_model = model or VISION_MODEL
+    gemini_model = genai.GenerativeModel(target_model)
+    
+    content = messages[0]["content"]
+    
+    if isinstance(content, str):
+        parts = [content]
+    else:
+        parts = []
+        for c in content:
+            if c["type"] == "text":
+                parts.append(c["text"])
+            elif c["type"] == "image_url":
+                url = c["image_url"]["url"]
+                prefix, b64_str = url.split("base64,")
+                mime_type = prefix.split(":")[1].split(";")[0]
+                parts.append({
+                    "mime_type": mime_type,
+                    "data": base64.b64decode(b64_str)
+                })
+                
+    try:
+        response = await gemini_model.generate_content_async(parts)
+        return response.text
+    except Exception as e:
+        logger.error(f"Gemini error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI service error: {str(e)}")
 
 def image_to_base64(path: str) -> str:
     with open(path, "rb") as f:
@@ -264,7 +276,7 @@ async def analyze_food(
                 ],
             }]
 
-        raw = await call_openrouter(messages, model=VISION_MODEL)
+        raw = await call_gemini(messages, model=VISION_MODEL)
         result = json.loads(clean_json(raw))
 
         if db is not None and user_id and patient_name:
@@ -314,7 +326,7 @@ async def analyze_food_text(input: FoodTextInput):
 
     try:
         messages = [{"role": "user", "content": FOOD_TEXT_PROMPT + f"\n\nFood name: {input.food_name.strip()}"}]
-        raw = await call_openrouter(messages)
+        raw = await call_gemini(messages)
         result = json.loads(clean_json(raw))
         result["food_name"] = input.food_name.strip()
 
@@ -385,7 +397,7 @@ async def analyze_disease(
                 ],
             }]
 
-        raw = await call_openrouter(messages, model=VISION_MODEL)
+        raw = await call_gemini(messages, model=VISION_MODEL)
         result = json.loads(clean_json(raw))
 
         if db is not None and user_id and patient_name:
@@ -524,7 +536,7 @@ Write a health summary in exactly 3 paragraphs:
 Be warm, encouraging, and constructive. Use plain English."""
 
     messages = [{"role": "user", "content": prompt}]
-    summary = await call_openrouter(messages, model=TEXT_MODEL)
+    summary = await call_gemini(messages, model=TEXT_MODEL)
 
     return {
         "patient_name":    patient.get("patient_name"),

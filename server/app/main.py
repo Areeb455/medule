@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 
 # ─── Config ───────────────────────────────────────────────
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-VISION_MODEL       = "gemini-2.0-flash"
-TEXT_MODEL         = "gemini-2.0-flash"
+VISION_MODEL = "gemini-1.5-flash"
+TEXT_MODEL   = "gemini-1.5-flash"
 UPLOAD_DIR         = "/tmp/medule_uploads"
 MONGODB_URI        = os.getenv("MONGODB_URI", "")
 

@@ -30,6 +30,8 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_URL     = "https://openrouter.ai/api/v1/chat/completions"
 VISION_MODEL       = "openrouter/auto"
 TEXT_MODEL         = "openrouter/auto"
+GEMINI_API_KEY     = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL       = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 UPLOAD_DIR         = "/tmp/medule_uploads"
 MONGODB_URI        = os.getenv("MONGODB_URI", "")
 
@@ -131,29 +133,94 @@ async def upsert_patient(user_id: str, patient_name: str):
         {"$set": {"patient_name": patient_name, "last_active": datetime.now(timezone.utc).isoformat()}}
     )
 
+# ─── Gemini REST API Fallback ─────────────────────────────
+async def call_gemini_rest(messages: list, model: str = None) -> str:
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=503, detail="Gemini API key not configured.")
+    
+    target_model = model or GEMINI_MODEL
+    # Strip any "models/" prefix if present to ensure correct URL format
+    if target_model.startswith("models/"):
+        target_model = target_model[7:]
+    # OpenRouter models shouldn't be passed to Gemini REST API directly, fallback to default
+    if "/" in target_model:
+        target_model = GEMINI_MODEL
+
+    parts = []
+    for msg in messages:
+        content = msg.get("content", "")
+        if isinstance(content, str):
+            parts.append({"text": content})
+        elif isinstance(content, list):
+            for item in content:
+                if item.get("type") == "text":
+                    parts.append({"text": item.get("text", "")})
+                elif item.get("type") == "image_url":
+                    url = item.get("image_url", {}).get("url", "")
+                    if "base64," in url:
+                        prefix, b64_str = url.split("base64,", 1)
+                        mime_type = prefix.split(":")[1].split(";")[0]
+                        parts.append({
+                            "inlineData": {
+                                "mimeType": mime_type,
+                                "data": b64_str
+                            }
+                        })
+                    else:
+                        parts.append({"text": f"[Image Attachment: {url}]"})
+                        
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{target_model}:generateContent?key={GEMINI_API_KEY}"
+    
+    async with httpx.AsyncClient(timeout=90) as client:
+        response = await client.post(
+            url,
+            headers={"Content-Type": "application/json"},
+            json={"contents": [{"parts": parts}]}
+        )
+        
+    if response.status_code != 200:
+        logger.error(f"Gemini REST API error: {response.text}")
+        raise HTTPException(status_code=500, detail=f"Gemini API error: {response.status_code}")
+        
+    res_json = response.json()
+    try:
+        return res_json["candidates"][0]["content"]["parts"][0]["text"]
+    except (KeyError, IndexError) as e:
+        logger.error(f"Unexpected Gemini REST response structure: {res_json}")
+        raise HTTPException(status_code=500, detail="Invalid response structure from Gemini")
+
 # ─── OpenRouter ───────────────────────────────────────────
 async def call_openrouter(messages: list, model: str = None) -> str:
-    if not OPENROUTER_API_KEY:
-        raise HTTPException(status_code=503, detail="AI service not configured.")
-    async with httpx.AsyncClient(timeout=60) as client:
-        response = await client.post(
-            OPENROUTER_URL,
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type":  "application/json",
-                "HTTP-Referer":  "https://medule-1.onrender.com",
-                "X-Title":       "Medule Health AI",
-            },
-            json={
-                "model":      model or VISION_MODEL,
-                "messages":   messages,
-                "max_tokens": 1500,
-            },
-        )
-    if response.status_code != 200:
-        logger.error(f"OpenRouter error: {response.text}")
-        raise HTTPException(status_code=500, detail=f"AI service error: {response.status_code}")
-    return response.json()["choices"][0]["message"]["content"]
+    if OPENROUTER_API_KEY:
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                response = await client.post(
+                    OPENROUTER_URL,
+                    headers={
+                        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                        "Content-Type":  "application/json",
+                        "HTTP-Referer":  "https://medule-1.onrender.com",
+                        "X-Title":       "Medule Health AI",
+                    },
+                    json={
+                        "model":      model or VISION_MODEL,
+                        "messages":   messages,
+                        "max_tokens": 1500,
+                    },
+                )
+            if response.status_code == 200:
+                return response.json()["choices"][0]["message"]["content"]
+            else:
+                logger.warning(f"OpenRouter returned status {response.status_code}. Trying Gemini fallback...")
+        except Exception as e:
+            logger.warning(f"OpenRouter request failed: {e}. Trying Gemini fallback...")
+
+    # Fallback to Gemini if OpenRouter is unconfigured, failed, or out of credits
+    if GEMINI_API_KEY:
+        logger.info("Using Gemini REST API fallback...")
+        return await call_gemini_rest(messages, model)
+        
+    raise HTTPException(status_code=503, detail="AI service not configured.")
 
 def image_to_base64(path: str) -> str:
     with open(path, "rb") as f:

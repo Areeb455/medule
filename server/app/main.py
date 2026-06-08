@@ -5,14 +5,19 @@ DB: MongoDB Atlas
 """
 
 import os, json, uuid, shutil, logging, base64
+from dotenv import load_dotenv
+# Load .env from project root
+load_dotenv(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.env")))
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
-
-import pdfplumber
 import httpx
-from fastapi import FastAPI, File, UploadFile, HTTPException
+
+try:
+    import pdfplumber
+except ImportError:
+    pdfplumber = None
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -41,7 +46,10 @@ async def lifespan(app: FastAPI):
     logger.info(f"MONGODB_URI present: {bool(MONGODB_URI)}")
     if MONGODB_URI:
         try:
-            mongo_client = AsyncIOMotorClient(MONGODB_URI)
+            kwargs = {}
+            if os.name == "nt":
+                kwargs["tlsAllowInvalidCertificates"] = True
+            mongo_client = AsyncIOMotorClient(MONGODB_URI, **kwargs)
             db = mongo_client["medule"]
             await mongo_client.admin.command("ping")
             logger.info("MongoDB connected successfully")
@@ -86,6 +94,12 @@ class ManualLogEntry(BaseModel):
     patient_name: str
     category:     str
     summary:      str
+
+class VitalsInput(BaseModel):
+    user_id:      str
+    patient_name: str
+    vitals:       dict
+    bmi:          Optional[float] = None
 
 # ─── Helpers ──────────────────────────────────────────────
 def serialize(doc) -> dict:
@@ -247,6 +261,8 @@ async def analyze_food(
 
         is_pdf = image.filename.lower().endswith(".pdf")
         if is_pdf:
+            if pdfplumber is None:
+                raise HTTPException(status_code=501, detail="PDF parsing is not supported on this environment.")
             text = ""
             with pdfplumber.open(temp_path) as pdf:
                 for p in pdf.pages:
@@ -368,6 +384,8 @@ async def analyze_disease(
 
         is_pdf = image.filename.lower().endswith(".pdf")
         if is_pdf:
+            if pdfplumber is None:
+                raise HTTPException(status_code=501, detail="PDF parsing is not supported on this environment.")
             text = ""
             with pdfplumber.open(temp_path) as pdf:
                 for p in pdf.pages:
@@ -463,6 +481,20 @@ async def log_manual(entry: ManualLogEntry):
     return {"status": "saved"}
 
 # ============================================================
+# SAVE VITALS
+# ============================================================
+@app.post("/save-vitals")
+async def save_vitals(input: VitalsInput):
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not configured.")
+    await upsert_patient(input.user_id, input.patient_name)
+    await db.patients.update_one(
+        {"user_id": input.user_id},
+        {"$set": {"vitals": input.vitals, "last_active": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"status": "saved"}
+
+# ============================================================
 # PATIENT MANAGEMENT
 # ============================================================
 @app.get("/patients")
@@ -499,6 +531,11 @@ async def digital_twin_summary(user_id: str):
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found.")
 
+    vitals = patient.get("vitals", {})
+    vitals_str = ""
+    if vitals:
+        vitals_str = f"Age: {vitals.get('age', 'N/A')} yrs, Height: {vitals.get('height_cm', 'N/A')} cm, Weight: {vitals.get('weight_kg', 'N/A')} kg, Gender: {vitals.get('gender', 'N/A')}, BMI: {vitals.get('bmi', 'N/A')}"
+
     food_logs    = [d async for d in db.food_logs.find({"user_id": user_id}).sort("timestamp", -1).limit(10)]
     disease_logs = [d async for d in db.disease_logs.find({"user_id": user_id}).sort("timestamp", -1).limit(10)]
     habit_logs   = [d async for d in db.habit_logs.find({"user_id": user_id}).sort("logged_at", -1).limit(10)]
@@ -506,6 +543,7 @@ async def digital_twin_summary(user_id: str):
     prompt = f"""You are a health AI generating a Digital Twin health report.
 
 Patient: {patient.get('patient_name', 'Unknown')}
+Vitals: {vitals_str or 'No vitals recorded yet.'}
 
 Recent Food Logs:
 {chr(10).join([d.get('summary','') for d in food_logs]) or 'No food data yet.'}
@@ -517,14 +555,18 @@ Recent Habit/Screen Time Logs:
 {chr(10).join([d.get('summary','') for d in habit_logs]) or 'No habit data yet.'}
 
 Write a health summary in exactly 3 paragraphs:
-1. Overall health status based on food and nutrition patterns
-2. Health conditions and risks identified
+1. Overall health status based on food and nutrition patterns (and how it relates to their vitals/BMI if recorded)
+2. Health conditions and risks identified (incorporating their age, gender, and BMI details if available)
 3. Lifestyle and habit assessment with actionable recommendations
 
 Be warm, encouraging, and constructive. Use plain English."""
 
-    messages = [{"role": "user", "content": prompt}]
-    summary = await call_openrouter(messages, model=TEXT_MODEL)
+    try:
+        messages = [{"role": "user", "content": prompt}]
+        summary = await call_openrouter(messages, model=TEXT_MODEL)
+    except Exception as e:
+        logger.error(f"Failed to generate AI summary: {e}")
+        summary = "AI Health Summary is temporarily unavailable. Please verify your OpenRouter API key configuration in .env."
 
     return {
         "patient_name":    patient.get("patient_name"),
@@ -533,6 +575,7 @@ Be warm, encouraging, and constructive. Use plain English."""
         "disease_count":   patient.get("disease_count", 0),
         "habit_count":     patient.get("habit_count", 0),
         "last_active":     patient.get("last_active"),
+        "vitals":          vitals,
         "recent_food":     [serialize(d) for d in food_logs],
         "recent_diseases": [serialize(d) for d in disease_logs],
         "recent_habits":   [serialize(d) for d in habit_logs],

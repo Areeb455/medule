@@ -66,7 +66,16 @@ const handleSaveVitals = async () => {
         return;
       }
       if (!res.ok) throw new Error("Failed to load health profile");
-      setData(await res.json());
+      const json = await res.json();
+      setData(json);
+      if (json.vitals) {
+        setVitals({
+          age: json.vitals.age || "",
+          height_cm: json.vitals.height_cm || "",
+          weight_kg: json.vitals.weight_kg || "",
+          gender: json.vitals.gender || "",
+        });
+      }
     } catch (e: any) {
       setError(e.message || "Something went wrong");
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -128,168 +137,263 @@ const handleSaveVitals = async () => {
             </div>
           )}
 
-          {error && !loading && (
-            <div className="glass card-shadow rounded-2xl p-10 text-center">
-              <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
-              <p className="text-muted-foreground text-lg">{error}</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Use the <strong>Analyze</strong>, <strong>Diagnose</strong>, or <strong>Habits</strong> features to start building your profile.
-              </p>
-            </div>
-          )}
+          {!loading && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              
+              {/* Left Column (Stats & Twin Summary) */}
+              <div className="lg:col-span-2 space-y-6">
+                {error && (
+                  <div className="glass card-shadow rounded-2xl p-10 text-center">
+                    <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+                    <p className="text-muted-foreground text-lg">{error}</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Use the <strong>Analyze</strong>, <strong>Diagnose</strong>, or <strong>Habits</strong> features to start building your profile.
+                    </p>
+                  </div>
+                )}
 
-          {data && !loading && (
-            <div className="space-y-6 animate-fade-in-up">
-            
-              {/* Patient card */}
-              <div className="glass card-shadow rounded-2xl p-6 flex items-center gap-6">
-                <div className="w-16 h-16 rounded-full gradient-bg flex items-center justify-center shrink-0">
-                  <User className="h-8 w-8 text-primary-foreground" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-foreground">{data.patient_name}</h2>
-                  <p className="text-muted-foreground text-sm">
-                    Last active: {data.last_active ? new Date(data.last_active).toLocaleString() : "N/A"}
-                  </p>
-                </div>
-                <div className="ml-auto grid grid-cols-3 gap-6 text-center">
-                  {[
-                    { label: "Food Logs",    value: data.food_count,    icon: <Utensils className="h-4 w-4" />,    color: "text-green-400" },
-                    { label: "Disease Logs", value: data.disease_count, icon: <Stethoscope className="h-4 w-4" />, color: "text-red-400" },
-                    { label: "Habit Logs",   value: data.habit_count,   icon: <Clock className="h-4 w-4" />,       color: "text-purple-400" },
-                  ].map((s, i) => (
-                    <div key={i}>
-                      <div className={`flex justify-center mb-1 ${s.color}`}>{s.icon}</div>
-                      <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                      <div className="text-xs text-muted-foreground">{s.label}</div>
+                {data && (
+                  <div className="space-y-6 animate-fade-in-up">
+                    {/* Patient card */}
+                    <div className="glass card-shadow rounded-2xl p-6 flex items-center gap-6">
+                      <div className="w-16 h-16 rounded-full gradient-bg flex items-center justify-center shrink-0">
+                        <User className="h-8 w-8 text-primary-foreground" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-foreground">{data.patient_name}</h2>
+                        <p className="text-muted-foreground text-sm">
+                          Last active: {data.last_active ? new Date(data.last_active).toLocaleString() : "N/A"}
+                        </p>
+                      </div>
+                      <div className="ml-auto grid grid-cols-3 gap-6 text-center">
+                        {[
+                          { label: "Food Logs",    value: data.food_count,    icon: <Utensils className="h-4 w-4" />,    color: "text-green-400" },
+                          { label: "Disease Logs", value: data.disease_count, icon: <Stethoscope className="h-4 w-4" />, color: "text-red-400" },
+                          { label: "Habit Logs",   value: data.habit_count,   icon: <Clock className="h-4 w-4" />,       color: "text-purple-400" },
+                        ].map((s, i) => (
+                          <div key={i}>
+                            <div className={`flex justify-center mb-1 ${s.color}`}>{s.icon}</div>
+                            <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+                            <div className="text-xs text-muted-foreground">{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
 
-              {/* AI Summary */}
-              <div className="glass card-shadow rounded-2xl p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Brain className="h-5 w-5 text-primary" />
-                  <h3 className="text-lg font-semibold text-foreground">AI Health Summary</h3>
-                  <span className="ml-auto text-xs text-muted-foreground bg-secondary/40 px-3 py-1 rounded-full">
-                    Generated by Gemini AI
-                  </span>
-                </div>
-                <div className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                  {data.ai_summary}
-                </div>
-              </div>
-
-              {/* Charts row */}
-              <div className="grid md:grid-cols-2 gap-6">
-
-                {/* Radar */}
-                <div className="glass card-shadow rounded-2xl p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Activity className="h-5 w-5 text-primary" />
-                    <h3 className="text-lg font-semibold text-foreground">Health Profile Completeness</h3>
-                  </div>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <RadarChart data={radarData}>
-                      <PolarGrid stroke="#333" />
-                      <PolarAngleAxis dataKey="metric" tick={{ fill: "#888", fontSize: 12 }} />
-                      <Radar dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Pie */}
-                <div className="glass card-shadow rounded-2xl p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    <h3 className="text-lg font-semibold text-foreground">Log Breakdown</h3>
-                  </div>
-                  {pieData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={220}>
-                      <PieChart>
-                        <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                          {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip contentStyle={{ background: "#1a1a2e", border: "1px solid #333", borderRadius: 8 }} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
-                      No logs yet
+                    {/* AI Summary */}
+                    <div className="glass card-shadow rounded-2xl p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Brain className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-semibold text-foreground">AI Health Summary</h3>
+                        <span className="ml-auto text-xs text-muted-foreground bg-secondary/40 px-3 py-1 rounded-full">
+                          Generated by Gemini AI
+                        </span>
+                      </div>
+                      <div className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {data.ai_summary}
+                      </div>
                     </div>
-                  )}
-                </div>
+
+                    {/* Charts row */}
+                    <div className="grid md:grid-cols-2 gap-6">
+
+                      {/* Radar */}
+                      <div className="glass card-shadow rounded-2xl p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Activity className="h-5 w-5 text-primary" />
+                          <h3 className="text-lg font-semibold text-foreground">Health Profile Completeness</h3>
+                        </div>
+                        <ResponsiveContainer width="100%" height={220}>
+                          <RadarChart data={radarData}>
+                            <PolarGrid stroke="#333" />
+                            <PolarAngleAxis dataKey="metric" tick={{ fill: "#888", fontSize: 12 }} />
+                            <Radar dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
+                          </RadarChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* Pie */}
+                      <div className="glass card-shadow rounded-2xl p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                          <TrendingUp className="h-5 w-5 text-primary" />
+                          <h3 className="text-lg font-semibold text-foreground">Log Breakdown</h3>
+                        </div>
+                        {pieData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height={220}>
+                            <PieChart>
+                              <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                                {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                              </Pie>
+                              <Tooltip contentStyle={{ background: "#1a1a2e", border: "1px solid #333", borderRadius: 8 }} />
+                              <Legend />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
+                            No logs yet
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Recent logs */}
+                    <div className="grid md:grid-cols-3 gap-4">
+
+                      {/* Food */}
+                      <div className="glass card-shadow rounded-2xl p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Utensils className="h-4 w-4 text-green-400" />
+                          <h4 className="font-semibold text-foreground">Recent Food</h4>
+                        </div>
+                        <div className="space-y-2">
+                          {data.recent_food?.length > 0
+                            ? data.recent_food.slice(0, 5).map((f: any, i: number) => (
+                                <div key={i} className="text-sm text-muted-foreground bg-secondary/20 rounded-lg px-3 py-2">
+                                  <span className="text-foreground font-medium">{f.food_name || "—"}</span>
+                                  <span className="ml-2 text-xs">{f.calories ? `${f.calories} kcal` : ""}</span>
+                                  <div className="text-xs opacity-60 mt-0.5">
+                                    {f.timestamp ? new Date(f.timestamp).toLocaleDateString() : ""}
+                                  </div>
+                                </div>
+                              ))
+                            : <p className="text-sm text-muted-foreground">No food logs yet.</p>
+                          }
+                        </div>
+                      </div>
+
+                      {/* Disease */}
+                      <div className="glass card-shadow rounded-2xl p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Stethoscope className="h-4 w-4 text-red-400" />
+                          <h4 className="font-semibold text-foreground">Recent Conditions</h4>
+                        </div>
+                        <div className="space-y-2">
+                          {data.recent_diseases?.length > 0
+                            ? data.recent_diseases.slice(0, 5).map((d: any, i: number) => (
+                                <div key={i} className="text-sm text-muted-foreground bg-secondary/20 rounded-lg px-3 py-2">
+                                  <span className="text-foreground font-medium">{d.condition_name || "—"}</span>
+                                  <span className={`ml-2 text-xs font-semibold ${
+                                    d.severity === "Mild" ? "text-green-400"
+                                    : d.severity === "Moderate" ? "text-yellow-400"
+                                    : "text-red-400"
+                                  }`}>{d.severity}</span>
+                                  <div className="text-xs opacity-60 mt-0.5">
+                                    {d.timestamp ? new Date(d.timestamp).toLocaleDateString() : ""}
+                                  </div>
+                                </div>
+                              ))
+                            : <p className="text-sm text-muted-foreground">No disease logs yet.</p>
+                          }
+                        </div>
+                      </div>
+
+                      {/* Habits */}
+                      <div className="glass card-shadow rounded-2xl p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Clock className="h-4 w-4 text-purple-400" />
+                          <h4 className="font-semibold text-foreground">Recent Habits</h4>
+                        </div>
+                        <div className="space-y-2">
+                          {data.recent_habits?.length > 0
+                            ? data.recent_habits.slice(0, 5).map((h: any, i: number) => (
+                                <div key={i} className="text-sm text-muted-foreground bg-secondary/20 rounded-lg px-3 py-2">
+                                  <span className="text-foreground font-medium">{h.date || "—"}</span>
+                                  <div className="text-xs opacity-80 mt-0.5">{h.summary}</div>
+                                </div>
+                              ))
+                            : <p className="text-sm text-muted-foreground">No habit logs yet.</p>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Recent logs */}
-              <div className="grid md:grid-cols-3 gap-4">
+              {/* Right Column (Health Vitals Form) */}
+              <div className="lg:col-span-1">
+                <div className="glass card-shadow rounded-2xl p-6 space-y-4 h-fit animate-fade-in-up">
+                  <div className="flex items-center gap-2 border-b border-border/50 pb-3">
+                    <User className="h-5 w-5 text-primary" />
+                    <h3 className="text-lg font-semibold text-foreground">Health Vitals</h3>
+                  </div>
 
-                {/* Food */}
-                <div className="glass card-shadow rounded-2xl p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Utensils className="h-4 w-4 text-green-400" />
-                    <h4 className="font-semibold text-foreground">Recent Food</h4>
-                  </div>
-                  <div className="space-y-2">
-                    {data.recent_food?.length > 0
-                      ? data.recent_food.slice(0, 5).map((f: any, i: number) => (
-                          <div key={i} className="text-sm text-muted-foreground bg-secondary/20 rounded-lg px-3 py-2">
-                            <span className="text-foreground font-medium">{f.food_name || "—"}</span>
-                            <span className="ml-2 text-xs">{f.calories ? `${f.calories} kcal` : ""}</span>
-                            <div className="text-xs opacity-60 mt-0.5">
-                              {f.timestamp ? new Date(f.timestamp).toLocaleDateString() : ""}
-                            </div>
-                          </div>
-                        ))
-                      : <p className="text-sm text-muted-foreground">No food logs yet.</p>
-                    }
-                  </div>
-                </div>
+                  <div className="space-y-4">
+                    {/* Age */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">Age (years)</label>
+                      <input
+                        type="number"
+                        value={vitals.age || ""}
+                        onChange={(e) => setVitals({ ...vitals, age: e.target.value })}
+                        placeholder="e.g. 25"
+                        className="w-full bg-secondary/20 border border-border/50 rounded-xl px-4 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
+                      />
+                    </div>
 
-                {/* Disease */}
-                <div className="glass card-shadow rounded-2xl p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Stethoscope className="h-4 w-4 text-red-400" />
-                    <h4 className="font-semibold text-foreground">Recent Conditions</h4>
-                  </div>
-                  <div className="space-y-2">
-                    {data.recent_diseases?.length > 0
-                      ? data.recent_diseases.slice(0, 5).map((d: any, i: number) => (
-                          <div key={i} className="text-sm text-muted-foreground bg-secondary/20 rounded-lg px-3 py-2">
-                            <span className="text-foreground font-medium">{d.condition_name || "—"}</span>
-                            <span className={`ml-2 text-xs font-semibold ${
-                              d.severity === "Mild" ? "text-green-400"
-                              : d.severity === "Moderate" ? "text-yellow-400"
-                              : "text-red-400"
-                            }`}>{d.severity}</span>
-                            <div className="text-xs opacity-60 mt-0.5">
-                              {d.timestamp ? new Date(d.timestamp).toLocaleDateString() : ""}
-                            </div>
-                          </div>
-                        ))
-                      : <p className="text-sm text-muted-foreground">No disease logs yet.</p>
-                    }
-                  </div>
-                </div>
+                    {/* Height */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">Height (cm)</label>
+                      <input
+                        type="number"
+                        value={vitals.height_cm || ""}
+                        onChange={(e) => setVitals({ ...vitals, height_cm: e.target.value })}
+                        placeholder="e.g. 175"
+                        className="w-full bg-secondary/20 border border-border/50 rounded-xl px-4 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
+                      />
+                    </div>
 
-                {/* Habits */}
-                <div className="glass card-shadow rounded-2xl p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Clock className="h-4 w-4 text-purple-400" />
-                    <h4 className="font-semibold text-foreground">Recent Habits</h4>
-                  </div>
-                  <div className="space-y-2">
-                    {data.recent_habits?.length > 0
-                      ? data.recent_habits.slice(0, 5).map((h: any, i: number) => (
-                          <div key={i} className="text-sm text-muted-foreground bg-secondary/20 rounded-lg px-3 py-2">
-                            <span className="text-foreground font-medium">{h.date || "—"}</span>
-                            <div className="text-xs opacity-80 mt-0.5">{h.summary}</div>
-                          </div>
-                        ))
-                      : <p className="text-sm text-muted-foreground">No habit logs yet.</p>
-                    }
+                    {/* Weight */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">Weight (kg)</label>
+                      <input
+                        type="number"
+                        value={vitals.weight_kg || ""}
+                        onChange={(e) => setVitals({ ...vitals, weight_kg: e.target.value })}
+                        placeholder="e.g. 70"
+                        className="w-full bg-secondary/20 border border-border/50 rounded-xl px-4 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
+                      />
+                    </div>
+
+                    {/* Gender */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">Gender</label>
+                      <select
+                        value={vitals.gender || ""}
+                        onChange={(e) => setVitals({ ...vitals, gender: e.target.value })}
+                        className="w-full bg-secondary/20 border border-border/50 rounded-xl px-4 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm appearance-none cursor-pointer"
+                      >
+                        <option value="" className="bg-background">Select Gender</option>
+                        <option value="Male" className="bg-background">Male</option>
+                        <option value="Female" className="bg-background">Female</option>
+                        <option value="Other" className="bg-background">Other</option>
+                      </select>
+                    </div>
+
+                    {/* BMI Indicator if values exist */}
+                    {vitals.height_cm && vitals.weight_kg && (
+                      <div className="bg-secondary/10 border border-border/30 rounded-xl p-3 text-center animate-fade-in">
+                        <span className="text-xs text-muted-foreground block">Calculated BMI</span>
+                        <span className="text-2xl font-bold text-foreground">
+                          {(parseFloat(vitals.weight_kg) / Math.pow(parseFloat(vitals.height_cm) / 100, 2)).toFixed(1)}
+                        </span>
+                        {(() => {
+                          const bmi = parseFloat(vitals.weight_kg) / Math.pow(parseFloat(vitals.height_cm) / 100, 2);
+                          if (bmi < 18.5) return <span className="text-xs text-blue-400 font-semibold block">Underweight</span>;
+                          if (bmi < 25) return <span className="text-xs text-green-400 font-semibold block">Normal Weight</span>;
+                          if (bmi < 30) return <span className="text-xs text-yellow-400 font-semibold block">Overweight</span>;
+                          return <span className="text-xs text-red-400 font-semibold block">Obese</span>;
+                        })()}
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={handleSaveVitals}
+                      disabled={vitalsSaving}
+                      className="w-full gradient-bg rounded-xl py-2.5 mt-2 text-sm font-semibold"
+                    >
+                      {vitalsSaving ? "Saving..." : "Save Vitals"}
+                    </Button>
                   </div>
                 </div>
               </div>

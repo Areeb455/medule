@@ -6,6 +6,7 @@ import Analyze from "./pages/Analyze";
 import Diagnose from "./pages/Diagnose";
 import Habits from "./pages/Habits";
 import Dashboard from "./pages/Dashboard";
+import Recommendations from "./pages/Recommendations";
 import Patients from "./pages/Patients";
 import SignInPage from "./pages/SignInPage";
 
@@ -49,6 +50,7 @@ const App = () => (
       <Route path="/diagnose" element={<ProtectedRoute><Diagnose /></ProtectedRoute>} />
       <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
       <Route path="/patients" element={
         <ProtectedRoute>
           <PatientsPageAccess />

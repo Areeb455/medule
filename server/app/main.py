@@ -647,3 +647,80 @@ Be warm, encouraging, and constructive. Use plain English."""
         "recent_diseases": [serialize(d) for d in disease_logs],
         "recent_habits":   [serialize(d) for d in habit_logs],
     }
+
+# ============================================================
+# SMART RECOMMENDATIONS
+# ============================================================
+@app.get("/recommendations/{user_id}")
+async def get_recommendations(user_id: str):
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not configured.")
+
+    patient = await db.patients.find_one({"user_id": user_id})
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found.")
+
+    disease_logs = [d async for d in db.disease_logs.find({"user_id": user_id}).sort("timestamp", -1).limit(10)]
+    if not disease_logs:
+        raise HTTPException(status_code=404, detail="No medical reports found for this patient.")
+
+    conditions_summary = "\n\n".join([
+        f"Report {i+1} ({d.get('timestamp','')[:10]}): Condition: {d.get('condition_name','Unknown')}, Severity: {d.get('severity','')}, Summary: {d.get('summary','')}"
+        for i, d in enumerate(disease_logs)
+    ])
+
+    prompt = f"""You are a healthcare product recommendation AI. Based on the patient's medical report analyses below, suggest relevant medicinal and healthcare products they may consider. Do NOT prescribe prescription medications. Only suggest over-the-counter (OTC) products, supplements, vitamins, health monitoring devices, and lifestyle wellness products.
+
+Patient Reports:
+{conditions_summary}
+
+Return ONLY a valid JSON object with NO explanation, NO markdown, NO code fences.
+
+Exact structure required:
+{{
+  "overall_summary": "A warm, concise 2-3 sentence summary explaining what the recommendations are based on.",
+  "recommendations": [
+    {{
+      "category": "Supplements & Vitamins",
+      "items": [
+        {{"name": "Vitamin D3 1000 IU", "reason": "Your reports indicate low vitamin D levels.", "priority": "High"}}
+      ]
+    }},
+    {{
+      "category": "OTC Medications",
+      "items": [
+        {{"name": "Ibuprofen 200mg", "reason": "Useful for general pain relief.", "priority": "Medium"}}
+      ]
+    }},
+    {{
+      "category": "Health Monitoring Devices",
+      "items": [
+        {{"name": "Digital Blood Pressure Monitor", "reason": "Track blood pressure regularly.", "priority": "High"}}
+      ]
+    }},
+    {{
+      "category": "Lifestyle & Wellness",
+      "items": [
+        {{"name": "Yoga Mat", "reason": "Support low-impact exercise.", "priority": "Low"}}
+      ]
+    }}
+  ]
+}}
+
+CRITICAL RULES:
+- priority must be exactly one of: High, Medium, Low
+- Do NOT recommend prescription drugs
+- Keep reasons personalized and tied to report findings
+- Be warm, encouraging, and practical"""
+
+    try:
+        messages = [{"role": "user", "content": prompt}]
+        raw = await call_openrouter(messages, model=TEXT_MODEL)
+        result = json.loads(clean_json(raw))
+        return result
+    except json.JSONDecodeError as e:
+        logger.error(f"Recommendations JSON parse error: {e}")
+        raise HTTPException(status_code=500, detail="AI returned invalid recommendations format.")
+    except Exception as e:
+        logger.error(f"Recommendations generation error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate recommendations.")

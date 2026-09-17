@@ -23,6 +23,7 @@ dist-ssr/
 # (This covers server/venv, ml-service/venv, and all .env files)
 venv/
 env/
+.venv/
 .env
 
 # Byte-compiled / optimized Python files

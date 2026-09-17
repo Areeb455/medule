@@ -21,9 +21,10 @@ export default function Navbar() {
 
   const NAV_LINKS = [
     { href: "/medical-report",  label: "Medical Report" },
-    { href: "/analyze", label: "Food AI" }, 
+    { href: "/analyze", label: "Food AI" },
     { href: "/diagnose", label: "Disease AI" },
     { href: "/habits", label: "Habits" },
+    { href: "/recommendations", label: "Recommendations" },
     { href: "/dashboard", label: "Digital Twin" },
     ...(isAllowed ? [{ href: "/patients", label: "Patients" }] : []),
   ];

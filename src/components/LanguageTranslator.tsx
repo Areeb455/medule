@@ -66,6 +66,37 @@ export default function LanguageTranslator() {
       script.async = true;
       document.body.appendChild(script);
     }
+
+    // Suppress Google Translate top banner frame & reset body offset
+    const hideGoogleBanner = () => {
+      if (document.body.style.top && document.body.style.top !== "0px") {
+        document.body.style.top = "0px";
+      }
+      if (document.body.style.position && document.body.style.position !== "static") {
+        document.body.style.position = "static";
+      }
+      const elementsToHide = document.querySelectorAll<HTMLElement>(
+        '.goog-te-banner-frame, body > .skiptranslate, iframe[id*=":1.container"], iframe[id*=":2.container"], .VIpgJd-ZVi9od-OR95ae-HGlG1d, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf'
+      );
+      elementsToHide.forEach((el) => {
+        el.style.setProperty("display", "none", "important");
+        el.style.setProperty("visibility", "hidden", "important");
+        el.style.setProperty("height", "0px", "important");
+        el.style.setProperty("opacity", "0", "important");
+        el.style.setProperty("pointer-events", "none", "important");
+      });
+    };
+
+    const observer = new MutationObserver(hideGoogleBanner);
+    observer.observe(document.body, { childList: true, attributes: true, subtree: true });
+    hideGoogleBanner();
+
+    const intervalId = setInterval(hideGoogleBanner, 200);
+
+    return () => {
+      observer.disconnect();
+      clearInterval(intervalId);
+    };
   }, []);
 
   // Close dropdown on outside click

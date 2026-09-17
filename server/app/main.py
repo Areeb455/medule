@@ -4,7 +4,7 @@ AI: OpenRouter (free models)
 DB: MongoDB Atlas
 """
 
-import os, json, uuid, shutil, logging, base64
+import os, json, uuid, shutil, logging, base64, io
 from dotenv import load_dotenv
 # Load .env from project root
 load_dotenv(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.env")))
@@ -31,7 +31,7 @@ OPENROUTER_URL     = "https://openrouter.ai/api/v1/chat/completions"
 VISION_MODEL       = "openrouter/auto"
 TEXT_MODEL         = "openrouter/auto"
 GEMINI_API_KEY     = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL       = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL       = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 UPLOAD_DIR         = "/tmp/medule_uploads"
 MONGODB_URI        = os.getenv("MONGODB_URI", "")
 
@@ -113,10 +113,18 @@ def serialize(doc) -> dict:
 def clean_json(text: str) -> str:
     text = text.strip()
     if "```" in text:
-        text = text.split("```")[1]
-        if text.startswith("json"):
-            text = text[4:]
-    return text.strip()
+        parts = text.split("```")
+        for part in parts:
+            p = part.strip()
+            if p.startswith("json"):
+                p = p[4:].strip()
+            if p.startswith("{") and p.endswith("}"):
+                return p
+    first_brace = text.find("{")
+    last_brace = text.rfind("}")
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        return text[first_brace:last_brace + 1].strip()
+    return text
 
 async def upsert_patient(user_id: str, patient_name: str):
     await db.patients.update_one(
@@ -142,9 +150,9 @@ async def call_gemini_rest(messages: list, model: str = None) -> str:
     # Strip any "models/" prefix if present to ensure correct URL format
     if target_model.startswith("models/"):
         target_model = target_model[7:]
-    # OpenRouter models shouldn't be passed to Gemini REST API directly, fallback to default
-    if "/" in target_model:
-        target_model = GEMINI_MODEL
+    # OpenRouter models or invalid version strings shouldn't be passed to Gemini REST API directly
+    if "/" in target_model or "2.5" in target_model:
+        target_model = "gemini-1.5-flash"
 
     parts = []
     for msg in messages:
@@ -193,7 +201,7 @@ async def call_gemini_rest(messages: list, model: str = None) -> str:
 async def call_openrouter(messages: list, model: str = None) -> str:
     if OPENROUTER_API_KEY:
         try:
-            async with httpx.AsyncClient(timeout=60) as client:
+            async with httpx.AsyncClient(timeout=90) as client:
                 response = await client.post(
                     OPENROUTER_URL,
                     headers={
@@ -205,7 +213,7 @@ async def call_openrouter(messages: list, model: str = None) -> str:
                     json={
                         "model":      model or VISION_MODEL,
                         "messages":   messages,
-                        "max_tokens": 1500,
+                        "max_tokens": 4000,
                     },
                 )
             if response.status_code == 200:
@@ -225,6 +233,70 @@ async def call_openrouter(messages: list, model: str = None) -> str:
 def image_to_base64(path: str) -> str:
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
+
+def process_pdf_file(temp_path: str, prompt: str) -> list:
+    """
+    Extracts text and/or page images from a PDF file.
+    Handles digital text PDFs, scanned image PDFs, and hybrid documents.
+    """
+    text = ""
+    page_images_b64 = []
+
+    if pdfplumber is not None:
+        try:
+            with pdfplumber.open(temp_path) as pdf:
+                for p in pdf.pages:
+                    try:
+                        t = p.extract_text()
+                        if t:
+                            text += t + "\n"
+                    except Exception as te:
+                        logger.warning(f"Error extracting text from PDF page: {te}")
+
+                # If text is empty or very short (< 60 chars), this is a scanned PDF or disease scan in PDF
+                if len(text.strip()) < 60:
+                    logger.info("PDF has minimal text (<60 chars). Rendering pages to images for vision analysis...")
+                    for p in pdf.pages[:5]:
+                        try:
+                            pil_img = p.to_image(resolution=150).original
+                            buf = io.BytesIO()
+                            pil_img.save(buf, format="JPEG", quality=85)
+                            b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+                            page_images_b64.append(b64)
+                        except Exception as render_err:
+                            logger.warning(f"Could not render PDF page to image: {render_err}")
+        except Exception as e:
+            logger.warning(f"pdfplumber failed: {e}")
+
+    # If we extracted page images (scanned document)
+    if page_images_b64:
+        content_items = []
+        for b64 in page_images_b64:
+            content_items.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{b64}"}
+            })
+        extra_note = f"\n\nExtracted text:\n{text[:6000]}" if text.strip() else ""
+        content_items.append({
+            "type": "text",
+            "text": prompt + extra_note
+        })
+        return [{"role": "user", "content": content_items}]
+
+    # If digital text was extracted successfully
+    if text.strip():
+        return [{"role": "user", "content": prompt + f"\n\nDocument content:\n{text[:16000]}"}]
+
+    # Fallback if both text and rendering failed: pass raw PDF as base64 for Gemini inlineData
+    with open(temp_path, "rb") as f:
+        raw_b64 = base64.b64encode(f.read()).decode("utf-8")
+    return [{
+        "role": "user",
+        "content": [
+            {"type": "image_url", "image_url": {"url": f"data:application/pdf;base64,{raw_b64}"}},
+            {"type": "text", "text": prompt}
+        ]
+    }]
 
 # ─── Prompts ──────────────────────────────────────────────
 FOOD_PROMPT = """You are an expert nutritionist AI. Analyze this food image.
@@ -328,15 +400,7 @@ async def analyze_food(
 
         is_pdf = image.filename.lower().endswith(".pdf")
         if is_pdf:
-            if pdfplumber is None:
-                raise HTTPException(status_code=501, detail="PDF parsing is not supported on this environment.")
-            text = ""
-            with pdfplumber.open(temp_path) as pdf:
-                for p in pdf.pages:
-                    t = p.extract_text()
-                    if t:
-                        text += t + "\n"
-            messages = [{"role": "user", "content": FOOD_PROMPT + f"\n\nDocument content:\n{text[:8000]}"}]
+            messages = process_pdf_file(temp_path, FOOD_PROMPT)
         else:
             b64 = image_to_base64(temp_path)
             messages = [{
@@ -374,10 +438,10 @@ async def analyze_food(
         raise
     except json.JSONDecodeError as e:
         logger.error(f"JSON parse error: {e}")
-        raise HTTPException(status_code=500, detail="AI returned invalid response. Please try again.")
+        raise HTTPException(status_code=500, detail=f"AI returned invalid format: {str(e)[:100]}")
     except Exception as e:
         logger.error(f"Food analysis error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to analyze food. Please try again.")
+        raise HTTPException(status_code=500, detail=f"Failed to analyze food: {str(e)}")
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
@@ -451,15 +515,7 @@ async def analyze_disease(
 
         is_pdf = image.filename.lower().endswith(".pdf")
         if is_pdf:
-            if pdfplumber is None:
-                raise HTTPException(status_code=501, detail="PDF parsing is not supported on this environment.")
-            text = ""
-            with pdfplumber.open(temp_path) as pdf:
-                for p in pdf.pages:
-                    t = p.extract_text()
-                    if t:
-                        text += t + "\n"
-            messages = [{"role": "user", "content": DISEASE_PROMPT + f"\n\nDocument content:\n{text[:8000]}"}]
+            messages = process_pdf_file(temp_path, DISEASE_PROMPT)
         else:
             b64 = image_to_base64(temp_path)
             messages = [{
@@ -496,10 +552,10 @@ async def analyze_disease(
         raise
     except json.JSONDecodeError as e:
         logger.error(f"JSON parse error: {e}")
-        raise HTTPException(status_code=500, detail="AI returned invalid response. Please try again.")
+        raise HTTPException(status_code=500, detail=f"AI returned invalid format: {str(e)[:100]}")
     except Exception as e:
         logger.error(f"Disease analysis error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to analyze image. Please try again.")
+        raise HTTPException(status_code=500, detail=f"Failed to analyze document: {str(e)}")
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)

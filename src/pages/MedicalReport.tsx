@@ -99,9 +99,12 @@ function ReportResult({ result, onReset }: { result: any; onReset: () => void })
 function UploadBox({ onFile, loading }: { onFile: (f: File) => void; loading: boolean }) {
   const handleDrop = (e: React.DragEvent) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) onFile(f); };
   if (loading) return (
-    <div className="text-center py-16">
-      <div className="inline-block w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-3" />
-      <p className="text-muted-foreground animate-pulse text-sm">Analyzing your report with AI...</p>
+    <div className="text-center py-16 space-y-3">
+      <div className="inline-block w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2" />
+      <p className="text-foreground font-medium text-base animate-pulse">Analyzing your report with AI...</p>
+      <p className="text-xs text-muted-foreground max-w-md mx-auto">
+        Extracting clinical test parameters, abnormal markers, and normal ranges. Detailed multi-page reports and scans may take 20–30 seconds.
+      </p>
     </div>
   );
   return (
@@ -136,11 +139,15 @@ export default function MedicalReport() {
     const formData = buildFormData(file);
     try {
       const res = await fetch(`${API}/analyze-disease`, { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Analysis failed.");
-      setResult(await res.json());
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ detail: "Analysis failed." }));
+        throw new Error(errData.detail || "Analysis failed.");
+      }
+      const data = await res.json();
+      setResult(data);
       toast({ title: "Report Analyzed", description: "Medical report analysis complete." });
     } catch (err: any) {
-      toast({ title: "Failed", description: err.message, variant: "destructive" });
+      toast({ title: "Failed to Analyze Report", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }

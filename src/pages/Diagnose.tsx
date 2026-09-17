@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import FooterSection from "@/components/FooterSection";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePatient } from "@/hooks/usePatient";
 import {
   Camera, Upload, RotateCcw, AlertTriangle,
-  Stethoscope, Info, X, FlipHorizontal,
+  Stethoscope, Info, X, FlipHorizontal, Sparkles, ArrowRight
 } from "lucide-react";
 
 // ── Result display ────────────────────────────────────────
@@ -79,6 +80,23 @@ function DiagnosisResult({ result, preview, onReset }: {
             </ul>
           </div>
         )}
+
+        {/* Smart Recommendations CTA */}
+        <div className="glass border border-primary/30 rounded-xl p-5 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-primary/5">
+          <div className="space-y-1 text-center sm:text-left">
+            <h4 className="font-semibold text-foreground flex items-center gap-2 justify-center sm:justify-start">
+              <Sparkles className="h-4 w-4 text-primary" /> Personalized Treatment & Products Ready
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              Our AI has prepared tailored natural remedies, OTC medicines, and supportive health products for this diagnosis.
+            </p>
+          </div>
+          <Button asChild className="gradient-bg rounded-full px-6 shrink-0 shadow-md">
+            <Link to="/recommendations">
+              View Recommendations <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
 
         <div className="flex justify-center">
           <Button onClick={onReset} className="gradient-bg rounded-full px-8">

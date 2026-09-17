@@ -114,3 +114,36 @@
     border: 1px solid hsl(200 20% 90% / 0.5);
   }
 }
+
+/* ============================================================
+ * Google Translate Overrides
+ * Suppress default bar, avoid body shift, hide third-party tooltips
+ * ============================================================ */
+body {
+  top: 0px !important;
+  position: static !important;
+}
+
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+}
+
+.goog-te-gadget {
+  display: none !important;
+}
+
+#goog-gt-tt,
+.goog-te-balloon-frame {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
+

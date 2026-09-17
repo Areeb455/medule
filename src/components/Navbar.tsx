@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/clerk-react";
 import { Menu, X, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LanguageTranslator from "@/components/LanguageTranslator";
 
 const ALLOWED_EMAILS = [
   "yusufusmani910@gmail.com",
@@ -55,8 +56,12 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Auth */}
+        {/* Language Translator & Auth */}
         <div className="flex items-center gap-3">
+          <div className="hidden sm:block">
+            <LanguageTranslator />
+          </div>
+
           <SignedIn>
             <UserButton afterSignOutUrl="/" />
           </SignedIn>
@@ -78,7 +83,10 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden glass border-t border-border/50 px-6 py-4 space-y-1">
+        <div className="md:hidden glass border-t border-border/50 px-6 py-4 space-y-3">
+          <div className="pb-2 border-b border-border/40 flex justify-start">
+            <LanguageTranslator />
+          </div>
           {NAV_LINKS.map(link => (
             <Link
               key={link.href}

@@ -10,7 +10,7 @@ const features = [
   { icon: CalendarCheck, title: "Habit Tracker", text: "Monitors and logs daily health habits.", href: "/habits" },
   { icon: Building2, title: "Patient Management System", text: "A tool for clinics to manage patient records.", href: "/patients" },
   { icon: Fingerprint, title: "Digital Twin / Real-Time Health Profile", text: "An automatically updating profile of the user's health status.", href: "/dashboard" },
-  { icon: Lightbulb, title: "Smart Insights & Recommendations", text: "Personalized medicinal and healthcare product recommendations from your medical reports.", href: "/recommendations" },
+  { icon: Lightbulb, title: "Smart Insights & Recommendations", text: "Tailored products, natural remedies, OTC medicines, and care pathways from your reports and scans.", href: "/recommendations" },
 ];
 
 const FeaturesSection = () => {

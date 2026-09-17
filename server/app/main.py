@@ -649,7 +649,7 @@ Be warm, encouraging, and constructive. Use plain English."""
     }
 
 # ============================================================
-# SMART RECOMMENDATIONS
+# SMART RECOMMENDATIONS & TREATMENT WAYS
 # ============================================================
 @app.get("/recommendations/{user_id}")
 async def get_recommendations(user_id: str):
@@ -660,63 +660,128 @@ async def get_recommendations(user_id: str):
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found.")
 
-    disease_logs = [d async for d in db.disease_logs.find({"user_id": user_id}).sort("timestamp", -1).limit(10)]
+    disease_logs = [d async for d in db.disease_logs.find({"user_id": user_id}).sort("timestamp", -1).limit(8)]
     if not disease_logs:
-        raise HTTPException(status_code=404, detail="No medical reports found for this patient.")
+        raise HTTPException(status_code=404, detail="No medical reports or disease scans found for this patient.")
 
-    conditions_summary = "\n\n".join([
-        f"Report {i+1} ({d.get('timestamp','')[:10]}): Condition: {d.get('condition_name','Unknown')}, Severity: {d.get('severity','')}, Summary: {d.get('summary','')}"
-        for i, d in enumerate(disease_logs)
-    ])
+    detailed_reports = []
+    source_reports = []
+    for i, d in enumerate(disease_logs):
+        full = d.get("full_result") or {}
+        cond = d.get("condition_name") or full.get("condition_name", "Unknown Finding")
+        sev = d.get("severity") or full.get("severity", "Moderate")
+        date_str = (d.get("timestamp") or "")[:10]
+        desc = full.get("brief_description") or d.get("summary", "")
+        rep_sum = full.get("report_summary", "")
+        treatments = ", ".join(full.get("treatments", [])[:5])
+        causes = ", ".join(full.get("causes", [])[:5])
+        risks = ", ".join(full.get("risks", [])[:5])
 
-    prompt = f"""You are a healthcare product recommendation AI. Based on the patient's medical report analyses below, suggest relevant medicinal and healthcare products they may consider. Do NOT prescribe prescription medications. Only suggest over-the-counter (OTC) products, supplements, vitamins, health monitoring devices, and lifestyle wellness products.
+        source_reports.append({
+            "condition_name": cond,
+            "severity": sev,
+            "date": date_str,
+            "summary": desc[:180] + ("..." if len(desc) > 180 else ""),
+        })
 
-Patient Reports:
+        chunk = f"--- Record {i+1} ({date_str}) ---\nCondition/Diagnosis: {cond}\nSeverity: {sev}\n"
+        if desc:
+            chunk += f"Overview: {desc}\n"
+        if rep_sum:
+            chunk += f"Clinical & Lab Findings: {rep_sum[:1000]}\n"
+        if treatments:
+            chunk += f"Identified Treatments: {treatments}\n"
+        if causes:
+            chunk += f"Causes/Triggers: {causes}\n"
+        if risks:
+            chunk += f"Risks: {risks}\n"
+        detailed_reports.append(chunk)
+
+    conditions_summary = "\n\n".join(detailed_reports)
+
+    prompt = f"""You are a senior clinical pharmacologist and healthcare wellness advisor AI.
+Analyze the patient's uploaded medical reports, pathology lab metrics, and disease scans below.
+Provide a comprehensive, tailored treatment and healthcare product guidance plan addressing their exact findings.
+
+Patient Medical Records & Scans:
 {conditions_summary}
 
-Return ONLY a valid JSON object with NO explanation, NO markdown, NO code fences.
+You MUST return ONLY a valid JSON object with NO markdown, NO backticks, and NO code fences.
 
-Exact structure required:
+Exact JSON structure required:
 {{
-  "overall_summary": "A warm, concise 2-3 sentence summary explaining what the recommendations are based on.",
+  "overall_summary": "A warm, empathetic 3-4 sentence summary of the patient's health findings, abnormal values identified, and how this recommendation plan supports their recovery.",
   "recommendations": [
     {{
-      "category": "Supplements & Vitamins",
+      "category": "Natural Ways & Home Remedies",
       "items": [
-        {{"name": "Vitamin D3 1000 IU", "reason": "Your reports indicate low vitamin D levels.", "priority": "High"}}
+        {{
+          "name": "Specific natural remedy or dietary habit",
+          "reason": "Explicitly mention which lab metric or scanned condition this addresses and why it helps.",
+          "priority": "High",
+          "instructions": "Practical advice on how to use, daily frequency, or lifestyle guideline."
+        }}
       ]
     }},
     {{
-      "category": "OTC Medications",
+      "category": "Medicines & OTC Treatments",
       "items": [
-        {{"name": "Ibuprofen 200mg", "reason": "Useful for general pain relief.", "priority": "Medium"}}
+        {{
+          "name": "Over-The-Counter medication, safe topical ointment, or non-prescription relief",
+          "reason": "Why this OTC medication is suitable for the diagnosed symptom/condition.",
+          "priority": "High",
+          "instructions": "Recommended dosage context and precautions (e.g. consult doctor if symptoms persist)."
+        }}
       ]
     }},
     {{
-      "category": "Health Monitoring Devices",
+      "category": "Supplements & Nutrients",
       "items": [
-        {{"name": "Digital Blood Pressure Monitor", "reason": "Track blood pressure regularly.", "priority": "High"}}
+        {{
+          "name": "Targeted vitamin, mineral, or antioxidant (e.g., Vitamin D3, Iron, Omega-3)",
+          "reason": "Tied directly to nutritional deficiencies or metabolic demands in their report.",
+          "priority": "Medium",
+          "instructions": "Optimal timing (e.g., take with meals) and duration."
+        }}
       ]
     }},
     {{
-      "category": "Lifestyle & Wellness",
+      "category": "Health Products & Devices",
       "items": [
-        {{"name": "Yoga Mat", "reason": "Support low-impact exercise.", "priority": "Low"}}
+        {{
+          "name": "Medical/wellness monitoring tool or physical product (e.g., Digital BP Monitor, Glucometer, Nebulizer, Ergonomic Support)",
+          "reason": "How this device or product aids monitoring and daily care for their findings.",
+          "priority": "Medium",
+          "instructions": "Usage guidelines for home health management."
+        }}
+      ]
+    }},
+    {{
+      "category": "Care & Treatment Pathway",
+      "items": [
+        {{
+          "name": "Clinical Action Step or Follow-up Milestone",
+          "reason": "Long-term health preservation and risk avoidance.",
+          "priority": "High",
+          "instructions": "Recommended timeline for next tests or specialist consultation."
+        }}
       ]
     }}
   ]
 }}
 
 CRITICAL RULES:
-- priority must be exactly one of: High, Medium, Low
-- Do NOT recommend prescription drugs
-- Keep reasons personalized and tied to report findings
-- Be warm, encouraging, and practical"""
+- Include at least 2-3 items in EACH category.
+- Priority MUST be exactly one of: "High", "Medium", "Low".
+- Do NOT prescribe dangerous or controlled prescription-only drugs. Stick strictly to Over-The-Counter (OTC) remedies, safe topical products, dietary changes, evidence-based natural ways, supplements, and health devices.
+- Connect every recommendation explicitly to the patient's uploaded data or scans.
+- Tone must be supportive, clear, and reassuring."""
 
     try:
         messages = [{"role": "user", "content": prompt}]
         raw = await call_openrouter(messages, model=TEXT_MODEL)
         result = json.loads(clean_json(raw))
+        result["source_reports"] = source_reports
         return result
     except json.JSONDecodeError as e:
         logger.error(f"Recommendations JSON parse error: {e}")

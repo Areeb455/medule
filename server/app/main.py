@@ -146,13 +146,17 @@ async def call_gemini_rest(messages: list, model: str = None) -> str:
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=503, detail="Gemini API key not configured.")
     
+    api_key = GEMINI_API_KEY.strip().strip('"').strip("'")
     target_model = model or GEMINI_MODEL
-    # Strip any "models/" prefix if present to ensure correct URL format
     if target_model.startswith("models/"):
         target_model = target_model[7:]
-    # OpenRouter models or invalid version strings shouldn't be passed to Gemini REST API directly
     if "/" in target_model or "2.5" in target_model:
         target_model = "gemini-1.5-flash"
+
+    # List of candidate models to try in sequence if one returns 404 or fails
+    candidate_models = [target_model, "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro"]
+    seen = set()
+    models_to_try = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
 
     parts = []
     for msg in messages:
@@ -176,52 +180,73 @@ async def call_gemini_rest(messages: list, model: str = None) -> str:
                         })
                     else:
                         parts.append({"text": f"[Image Attachment: {url}]"})
-                        
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{target_model}:generateContent?key={GEMINI_API_KEY}"
-    
-    async with httpx.AsyncClient(timeout=90) as client:
-        response = await client.post(
-            url,
-            headers={"Content-Type": "application/json"},
-            json={"contents": [{"parts": parts}]}
-        )
-        
-    if response.status_code != 200:
-        logger.error(f"Gemini REST API error: {response.text}")
-        raise HTTPException(status_code=500, detail=f"Gemini API error: {response.status_code}")
-        
-    res_json = response.json()
-    try:
-        return res_json["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError) as e:
-        logger.error(f"Unexpected Gemini REST response structure: {res_json}")
-        raise HTTPException(status_code=500, detail="Invalid response structure from Gemini")
+
+    last_error = ""
+    for candidate in models_to_try:
+        if "/" in candidate:
+            continue
+        for api_version in ["v1beta", "v1"]:
+            url = f"https://generativelanguage.googleapis.com/{api_version}/models/{candidate}:generateContent?key={api_key}"
+            try:
+                async with httpx.AsyncClient(timeout=90) as client:
+                    response = await client.post(
+                        url,
+                        headers={"Content-Type": "application/json"},
+                        json={"contents": [{"parts": parts}]}
+                    )
+                if response.status_code == 200:
+                    res_json = response.json()
+                    try:
+                        return res_json["candidates"][0]["content"]["parts"][0]["text"]
+                    except (KeyError, IndexError) as e:
+                        logger.error(f"Unexpected Gemini REST response structure: {res_json}")
+                        continue
+                else:
+                    last_error = f"{candidate} ({api_version}): {response.status_code} - {response.text[:200]}"
+                    logger.warning(f"Gemini {candidate} ({api_version}) returned {response.status_code}: {response.text[:200]}")
+            except Exception as req_err:
+                last_error = f"{candidate}: {req_err}"
+                logger.warning(f"Gemini request error for {candidate}: {req_err}")
+
+    raise HTTPException(status_code=500, detail=f"Gemini API error: {last_error}")
 
 # ─── OpenRouter ───────────────────────────────────────────
 async def call_openrouter(messages: list, model: str = None) -> str:
     if OPENROUTER_API_KEY:
-        try:
-            async with httpx.AsyncClient(timeout=90) as client:
-                response = await client.post(
-                    OPENROUTER_URL,
-                    headers={
-                        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                        "Content-Type":  "application/json",
-                        "HTTP-Referer":  "https://medule-1.onrender.com",
-                        "X-Title":       "Medule Health AI",
-                    },
-                    json={
-                        "model":      model or VISION_MODEL,
-                        "messages":   messages,
-                        "max_tokens": 4000,
-                    },
-                )
-            if response.status_code == 200:
-                return response.json()["choices"][0]["message"]["content"]
-            else:
-                logger.warning(f"OpenRouter returned status {response.status_code}. Trying Gemini fallback...")
-        except Exception as e:
-            logger.warning(f"OpenRouter request failed: {e}. Trying Gemini fallback...")
+        api_key = OPENROUTER_API_KEY.strip().strip('"').strip("'")
+        primary_model = model or VISION_MODEL
+        models_to_try = [primary_model]
+        # If openrouter/auto or paid model, also add free fallback models in case credits are 0
+        if "free" not in primary_model:
+            models_to_try.extend([
+                "google/gemini-2.0-flash-exp:free",
+                "meta-llama/llama-3.3-70b-instruct:free",
+                "qwen/qwen-2.5-72b-instruct:free"
+            ])
+
+        for m in models_to_try:
+            try:
+                async with httpx.AsyncClient(timeout=90) as client:
+                    response = await client.post(
+                        OPENROUTER_URL,
+                        headers={
+                            "Authorization": f"Bearer {api_key}",
+                            "Content-Type":  "application/json",
+                            "HTTP-Referer":  "https://medule-1.onrender.com",
+                            "X-Title":       "Medule Health AI",
+                        },
+                        json={
+                            "model":      m,
+                            "messages":   messages,
+                            "max_tokens": 4000,
+                        },
+                    )
+                if response.status_code == 200:
+                    return response.json()["choices"][0]["message"]["content"]
+                else:
+                    logger.warning(f"OpenRouter model {m} returned status {response.status_code}: {response.text[:200]}. Trying fallback...")
+            except Exception as e:
+                logger.warning(f"OpenRouter request failed for {m}: {e}. Trying fallback...")
 
     # Fallback to Gemini if OpenRouter is unconfigured, failed, or out of credits
     if GEMINI_API_KEY:
@@ -378,7 +403,31 @@ CRITICAL RULES:
 # ============================================================
 @app.get("/")
 async def root():
-    return {"status": "ok", "service": "Medule API v2.2 (OpenRouter)"}
+    return {"status": "ok", "service": "Medule API v2.3 (Multi-Model Resilient)"}
+
+@app.get("/health-ai")
+async def health_ai():
+    results = {}
+    test_msg = [{"role": "user", "content": "Respond with the word OK."}]
+    if OPENROUTER_API_KEY:
+        try:
+            res = await call_openrouter(test_msg)
+            results["openrouter"] = {"status": "ok", "response": res[:50]}
+        except Exception as e:
+            results["openrouter"] = {"status": "error", "error": str(e)}
+    else:
+        results["openrouter"] = {"status": "not_configured"}
+
+    if GEMINI_API_KEY:
+        try:
+            res = await call_gemini_rest(test_msg)
+            results["gemini"] = {"status": "ok", "response": res[:50]}
+        except Exception as e:
+            results["gemini"] = {"status": "error", "error": str(e)}
+    else:
+        results["gemini"] = {"status": "not_configured"}
+
+    return results
 
 # ============================================================
 # FOOD ANALYSIS

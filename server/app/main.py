@@ -223,7 +223,7 @@ async def call_gemini_rest(messages: list, model: str = None) -> str:
         for api_version in ["v1beta", "v1"]:
             url = f"https://generativelanguage.googleapis.com/{api_version}/models/{candidate}:generateContent?key={api_key}"
             try:
-                async with httpx.AsyncClient(timeout=90) as client:
+                async with httpx.AsyncClient(timeout=45) as client:
                     response = await client.post(
                         url,
                         headers={"Content-Type": "application/json"},
@@ -261,7 +261,7 @@ async def call_openrouter(messages: list, model: str = None) -> str:
 
         for m in models_to_try:
             try:
-                async with httpx.AsyncClient(timeout=90) as client:
+                async with httpx.AsyncClient(timeout=25) as client:
                     response = await client.post(
                         OPENROUTER_URL,
                         headers={

@@ -141,6 +141,34 @@ async def upsert_patient(user_id: str, patient_name: str):
         {"$set": {"patient_name": patient_name, "last_active": datetime.now(timezone.utc).isoformat()}}
     )
 
+AVAILABLE_GEMINI_MODELS = []
+GEMINI_MODELS_RAW_RESPONSE = None
+
+async def get_available_gemini_models() -> list:
+    global AVAILABLE_GEMINI_MODELS, GEMINI_MODELS_RAW_RESPONSE
+    if AVAILABLE_GEMINI_MODELS:
+        return AVAILABLE_GEMINI_MODELS
+    if not GEMINI_API_KEY:
+        return []
+    api_key = GEMINI_API_KEY.strip().strip('"').strip("'")
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(url)
+            GEMINI_MODELS_RAW_RESPONSE = f"status: {r.status_code}, body: {r.text[:300]}"
+            if r.status_code == 200:
+                data = r.json()
+                models = [
+                    m["name"].replace("models/", "")
+                    for m in data.get("models", [])
+                    if "generateContent" in m.get("supportedGenerationMethods", [])
+                ]
+                AVAILABLE_GEMINI_MODELS = models
+                return models
+    except Exception as e:
+        GEMINI_MODELS_RAW_RESPONSE = f"exception: {str(e)}"
+    return []
+
 # ─── Gemini REST API Fallback ─────────────────────────────
 async def call_gemini_rest(messages: list, model: str = None) -> str:
     if not GEMINI_API_KEY:
@@ -153,8 +181,15 @@ async def call_gemini_rest(messages: list, model: str = None) -> str:
     if "/" in target_model or "2.5" in target_model:
         target_model = "gemini-1.5-flash"
 
-    # List of candidate models to try in sequence if one returns 404 or fails
-    candidate_models = [target_model, "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro"]
+    # Dynamically discover supported models from Google ModelService
+    dynamic_models = await get_available_gemini_models()
+    if dynamic_models:
+        flash_models = [m for m in dynamic_models if "flash" in m]
+        other_models = [m for m in dynamic_models if "flash" not in m]
+        candidate_models = flash_models + other_models
+    else:
+        candidate_models = [target_model, "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro"]
+
     seen = set()
     models_to_try = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
 
@@ -212,11 +247,11 @@ async def call_gemini_rest(messages: list, model: str = None) -> str:
 
 # ─── OpenRouter ───────────────────────────────────────────
 async def call_openrouter(messages: list, model: str = None) -> str:
+    openrouter_errors = []
     if OPENROUTER_API_KEY:
         api_key = OPENROUTER_API_KEY.strip().strip('"').strip("'")
         primary_model = model or VISION_MODEL
         models_to_try = [primary_model]
-        # If openrouter/auto or paid model, also add free fallback models in case credits are 0
         if "free" not in primary_model:
             models_to_try.extend([
                 "google/gemini-2.0-flash-exp:free",
@@ -244,8 +279,10 @@ async def call_openrouter(messages: list, model: str = None) -> str:
                 if response.status_code == 200:
                     return response.json()["choices"][0]["message"]["content"]
                 else:
+                    openrouter_errors.append(f"{m}: {response.status_code} {response.text[:100]}")
                     logger.warning(f"OpenRouter model {m} returned status {response.status_code}: {response.text[:200]}. Trying fallback...")
             except Exception as e:
+                openrouter_errors.append(f"{m}: {str(e)[:100]}")
                 logger.warning(f"OpenRouter request failed for {m}: {e}. Trying fallback...")
 
     # Fallback to Gemini if OpenRouter is unconfigured, failed, or out of credits
@@ -253,7 +290,8 @@ async def call_openrouter(messages: list, model: str = None) -> str:
         logger.info("Using Gemini REST API fallback...")
         return await call_gemini_rest(messages, model)
         
-    raise HTTPException(status_code=503, detail="AI service not configured.")
+    error_summary = " | ".join(openrouter_errors) if openrouter_errors else "AI service not configured."
+    raise HTTPException(status_code=503, detail=f"AI service unavailable: {error_summary}")
 
 def image_to_base64(path: str) -> str:
     with open(path, "rb") as f:
@@ -407,7 +445,11 @@ async def root():
 
 @app.get("/health-ai")
 async def health_ai():
-    results = {}
+    models = await get_available_gemini_models()
+    results = {
+        "gemini_list_models_result": GEMINI_MODELS_RAW_RESPONSE,
+        "available_gemini_models": models,
+    }
     test_msg = [{"role": "user", "content": "Respond with the word OK."}]
     if OPENROUTER_API_KEY:
         try:

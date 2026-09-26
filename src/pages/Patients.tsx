@@ -166,15 +166,15 @@ export default function Patients() {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       <main className="flex-1 pt-24 pb-12">
-        <div className="container mx-auto px-6 max-w-5xl">
+        <div className="container mx-auto px-4 sm:px-6 max-w-5xl w-full">
 
           {/* Header */}
-          <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
+          <div className="mb-6 sm:mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
                 Patient <span className="gradient-text">Management</span>
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 All patient records — auto-populated from feature usage. Add manual entries or manage records anytime.
               </p>
             </div>
@@ -197,16 +197,16 @@ export default function Patients() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
             {[
               { label: "Total Patients", value: patients.length, icon: <Users className="h-4 w-4" />, color: "text-blue-400" },
               { label: "Total Food Logs", value: patients.reduce((s, p) => s + (p.food_count || 0), 0), icon: <Utensils className="h-4 w-4" />, color: "text-green-400" },
               { label: "Total Disease Logs", value: patients.reduce((s, p) => s + (p.disease_count || 0), 0), icon: <Stethoscope className="h-4 w-4" />, color: "text-red-400" },
             ].map((s, i) => (
-              <div key={i} className="glass card-shadow rounded-2xl p-5 text-center">
-                <div className={`flex justify-center mb-2 ${s.color}`}>{s.icon}</div>
-                <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                <div className="text-xs text-muted-foreground">{s.label}</div>
+              <div key={i} className="glass card-shadow rounded-2xl p-3 sm:p-5 text-center min-w-0">
+                <div className={`flex justify-center mb-1 sm:mb-2 ${s.color}`}>{s.icon}</div>
+                <div className={`text-xl sm:text-2xl font-bold ${s.color}`}>{s.value}</div>
+                <div className="text-[11px] sm:text-xs text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">{s.label}</div>
               </div>
             ))}
           </div>
@@ -325,50 +325,75 @@ export default function Patients() {
                                 { title: "Medical Reports", logs: d.disease_logs, color: "text-red-400", category: "disease" as const, key: (l: any) => l.condition_name || l.summary },
                                 { title: "Habit Logs", logs: d.habit_logs, color: "text-purple-400", category: "habit" as const, key: (l: any) => l.summary },
                               ].map((section) => (
-                                <div key={section.title} className="bg-secondary/15 rounded-xl p-3 border border-border/30">
+                                <div key={section.title} className="bg-secondary/15 rounded-xl p-3 border border-border/30 w-full min-w-0">
                                   <div className="flex items-center justify-between mb-2">
                                     <p className={`text-xs font-semibold ${section.color}`}>{section.title}</p>
                                     <span className="text-[10px] text-muted-foreground">{section.logs?.length || 0} entries</span>
                                   </div>
                                   {section.logs?.length > 0 ? (
-                                    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-                                      {section.logs.slice(0, 8).map((l: any, i: number) => {
+                                    <div className="space-y-1.5 max-h-64 overflow-y-auto overflow-x-auto pr-1 pb-1 scrollbar-thin">
+                                      {section.logs.slice(0, 10).map((l: any, i: number) => {
                                         const logId = l._id || l.id || `${section.category}-${i}`;
                                         const isConfirming = confirmDeleteLogId === logId;
                                         const isDeleting = deletingLogId === logId;
 
                                         return (
-                                          <div key={i} className="group text-xs text-muted-foreground bg-secondary/30 hover:bg-secondary/50 rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-1.5 transition-all">
-                                            <span className="truncate flex-1 text-foreground/90" title={section.key(l)}>
-                                              {section.key(l)}
-                                            </span>
-                                            
+                                          <div key={i} className="group text-xs text-muted-foreground bg-secondary/30 hover:bg-secondary/50 rounded-lg p-2 flex items-center justify-between gap-2 transition-all min-w-[240px]">
+                                            <div className="min-w-0 flex-1">
+                                              <div className="flex items-center gap-1.5">
+                                                <span className="font-medium text-foreground truncate" title={section.key(l)}>
+                                                  {section.key(l)}
+                                                </span>
+                                                {section.category === "food" && l.calories && (
+                                                  <span className="text-[10px] text-green-400 font-semibold shrink-0">
+                                                    {l.calories} kcal
+                                                  </span>
+                                                )}
+                                                {section.category === "disease" && l.severity && (
+                                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${
+                                                    l.severity === "Mild" ? "bg-green-500/10 text-green-400 border-green-500/30"
+                                                    : l.severity === "Moderate" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
+                                                    : "bg-red-500/10 text-red-400 border-red-500/30"
+                                                  }`}>
+                                                    {l.severity}
+                                                  </span>
+                                                )}
+                                              </div>
+                                              {(l.timestamp || l.date) && (
+                                                <div className="text-[10px] opacity-60 mt-0.5">
+                                                  {formatDateSafe(l.timestamp || l.date)}
+                                                </div>
+                                              )}
+                                            </div>
+
+                                            {/* Action / Delete Button */}
                                             {isConfirming ? (
-                                              <div className="flex items-center gap-1 bg-red-500/20 border border-red-500/40 rounded px-1 py-0.5 shrink-0">
-                                                <span className="text-[9px] text-red-400 font-bold">Delete?</span>
+                                              <div className="flex items-center gap-1.5 bg-red-500/20 border border-red-500/40 rounded-md px-2 py-1 shrink-0 animate-fade-in">
+                                                <span className="text-[10px] text-red-400 font-bold">Delete?</span>
                                                 <button
                                                   onClick={() => deletePatientLog(uid, logId, section.category)}
                                                   disabled={isDeleting}
-                                                  className="text-red-400 hover:text-red-300 font-bold px-0.5"
+                                                  className="bg-red-500 hover:bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded transition-all"
                                                   title="Confirm delete"
                                                 >
                                                   {isDeleting ? "..." : "Yes"}
                                                 </button>
                                                 <button
                                                   onClick={() => setConfirmDeleteLogId(null)}
-                                                  className="text-muted-foreground hover:text-foreground px-0.5"
+                                                  className="text-muted-foreground hover:text-foreground p-0.5"
                                                   title="Cancel"
                                                 >
-                                                  <X className="h-2.5 w-2.5" />
+                                                  <X className="h-3 w-3" />
                                                 </button>
                                               </div>
                                             ) : (
                                               <button
                                                 onClick={() => setConfirmDeleteLogId(logId)}
-                                                className="text-muted-foreground/50 hover:text-red-400 p-0.5 rounded opacity-50 group-hover:opacity-100 transition-all shrink-0"
+                                                className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/25 active:scale-95 transition-all shrink-0 flex items-center gap-1"
                                                 title={`Delete this ${section.category === "disease" ? "report" : "entry"}`}
                                               >
-                                                <Trash2 className="h-3 w-3" />
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                                <span className="text-[10px] font-medium hidden xs:inline">Delete</span>
                                               </button>
                                             )}
                                           </div>

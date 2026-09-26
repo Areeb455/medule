@@ -215,15 +215,15 @@ const handleSaveVitals = async () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       <main className="flex-1 pt-24 pb-12">
-        <div className="container mx-auto px-6 max-w-6xl">
+        <div className="container mx-auto px-4 sm:px-6 max-w-6xl w-full">
 
           {/* Header */}
-          <div className="mb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
+          <div className="mb-8 sm:mb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
                 Digital <span className="gradient-text">Twin</span>
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Your real-time health profile — updated automatically as you use Medule.
               </p>
             </div>
@@ -241,10 +241,10 @@ const handleSaveVitals = async () => {
           )}
 
           {!loading && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start w-full">
               
               {/* Left Column (Stats & Twin Summary) */}
-              <div className="lg:col-span-2 space-y-6">
+              <div className="lg:col-span-2 space-y-6 w-full min-w-0">
                 {error && (
                   <div className="glass card-shadow rounded-2xl p-10 text-center">
                     <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
@@ -257,80 +257,90 @@ const handleSaveVitals = async () => {
 
                 {data && (
                   <div className="space-y-6 animate-fade-in-up">
-                    {/* Patient card */}
-                    <div className="glass card-shadow rounded-2xl p-6 flex items-center gap-6">
-                      <div className="w-16 h-16 rounded-full gradient-bg flex items-center justify-center shrink-0">
-                        <User className="h-8 w-8 text-primary-foreground" />
+                    {/* Patient card: stacks on mobile so stats never overlap or get crushed */}
+                    <div className="glass card-shadow rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full gradient-bg flex items-center justify-center shrink-0">
+                          <User className="h-7 w-7 sm:h-8 sm:w-8 text-primary-foreground" />
+                        </div>
+                        <div className="min-w-0">
+                          <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">{data.patient_name}</h2>
+                          <p className="text-muted-foreground text-xs sm:text-sm">
+                            Last active: {formatDateSafe(data.last_active) || "N/A"}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-foreground">{data.patient_name}</h2>
-                        <p className="text-muted-foreground text-sm">
-                          Last active: {formatDateSafe(data.last_active) || "N/A"}
-                        </p>
-                      </div>
-                      <div className="ml-auto grid grid-cols-3 gap-6 text-center">
+
+                      {/* Stats grid: full width row on mobile with generous column space and no text overlap */}
+                      <div className="w-full sm:w-auto grid grid-cols-3 gap-2 sm:gap-6 text-center border-t sm:border-t-0 border-border/30 pt-3 sm:pt-0">
                         {[
                           { label: "Food Logs",    value: data.food_count,    icon: <Utensils className="h-4 w-4" />,    color: "text-green-400" },
                           { label: "Disease Logs", value: data.disease_count, icon: <Stethoscope className="h-4 w-4" />, color: "text-red-400" },
                           { label: "Habit Logs",   value: data.habit_count,   icon: <Clock className="h-4 w-4" />,       color: "text-purple-400" },
                         ].map((s, i) => (
-                          <div key={i}>
+                          <div key={i} className="min-w-0 px-1">
                             <div className={`flex justify-center mb-1 ${s.color}`}>{s.icon}</div>
-                            <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                            <div className="text-xs text-muted-foreground">{s.label}</div>
+                            <div className={`text-xl sm:text-2xl font-bold ${s.color}`}>{s.value}</div>
+                            <div className="text-[11px] sm:text-xs text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+                              {s.label}
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
 
                     {/* AI Summary */}
-                    <div className="glass card-shadow rounded-2xl p-6">
+                    <div className="glass card-shadow rounded-2xl p-4 sm:p-6 w-full min-w-0">
                       <div className="flex items-center gap-2 mb-4">
-                        <Brain className="h-5 w-5 text-primary" />
-                        <h3 className="text-lg font-semibold text-foreground">AI Health Summary</h3>
-                        <span className="ml-auto text-xs text-muted-foreground bg-secondary/40 px-3 py-1 rounded-full">
+                        <Brain className="h-5 w-5 text-primary shrink-0" />
+                        <h3 className="text-base sm:text-lg font-semibold text-foreground">AI Health Summary</h3>
+                        <span className="ml-auto text-[11px] sm:text-xs text-muted-foreground bg-secondary/40 px-2.5 sm:px-3 py-1 rounded-full whitespace-nowrap">
                           Generated by Gemini AI
                         </span>
                       </div>
-                      <div className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                      <div className="text-muted-foreground text-sm sm:text-base leading-relaxed whitespace-pre-line break-words">
                         {data.ai_summary}
                       </div>
                     </div>
 
                     {/* Charts row */}
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full min-w-0">
 
                       {/* Radar */}
-                      <div className="glass card-shadow rounded-2xl p-6">
+                      <div className="glass card-shadow rounded-2xl p-4 sm:p-6 w-full min-w-0 overflow-hidden">
                         <div className="flex items-center gap-2 mb-4">
-                          <Activity className="h-5 w-5 text-primary" />
-                          <h3 className="text-lg font-semibold text-foreground">Health Profile Completeness</h3>
+                          <Activity className="h-5 w-5 text-primary shrink-0" />
+                          <h3 className="text-base sm:text-lg font-semibold text-foreground">Health Profile Completeness</h3>
                         </div>
-                        <ResponsiveContainer width="100%" height={220}>
-                          <RadarChart data={radarData}>
-                            <PolarGrid stroke="#333" />
-                            <PolarAngleAxis dataKey="metric" tick={{ fill: "#888", fontSize: 12 }} />
-                            <Radar dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
-                          </RadarChart>
-                        </ResponsiveContainer>
+                        <div className="w-full h-[220px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RadarChart data={radarData}>
+                              <PolarGrid stroke="#333" />
+                              <PolarAngleAxis dataKey="metric" tick={{ fill: "#888", fontSize: 11 }} />
+                              <Radar dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
+                            </RadarChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
 
                       {/* Pie */}
-                      <div className="glass card-shadow rounded-2xl p-6">
+                      <div className="glass card-shadow rounded-2xl p-4 sm:p-6 w-full min-w-0 overflow-hidden">
                         <div className="flex items-center gap-2 mb-4">
-                          <TrendingUp className="h-5 w-5 text-primary" />
-                          <h3 className="text-lg font-semibold text-foreground">Log Breakdown</h3>
+                          <TrendingUp className="h-5 w-5 text-primary shrink-0" />
+                          <h3 className="text-base sm:text-lg font-semibold text-foreground">Log Breakdown</h3>
                         </div>
                         {pieData.length > 0 ? (
-                          <ResponsiveContainer width="100%" height={220}>
-                            <PieChart>
-                              <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                                {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                              </Pie>
-                              <Tooltip contentStyle={{ background: "#1a1a2e", border: "1px solid #333", borderRadius: 8 }} />
-                              <Legend />
-                            </PieChart>
-                          </ResponsiveContainer>
+                          <div className="w-full h-[220px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label>
+                                  {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                                </Pie>
+                                <Tooltip contentStyle={{ background: "#1a1a2e", border: "1px solid #333", borderRadius: 8 }} />
+                                <Legend />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
                         ) : (
                           <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
                             No logs yet
@@ -340,10 +350,10 @@ const handleSaveVitals = async () => {
                     </div>
 
                     {/* Recent logs */}
-                    <div className="grid md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full min-w-0">
 
                       {/* Food */}
-                      <div className="glass card-shadow rounded-2xl p-5">
+                      <div className="glass card-shadow rounded-2xl p-4 sm:p-5 w-full min-w-0">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-2">
                             <Utensils className="h-4 w-4 text-green-400" />
@@ -407,7 +417,7 @@ const handleSaveVitals = async () => {
                       </div>
 
                       {/* Medical Reports & Disease Conditions */}
-                      <div className="glass card-shadow rounded-2xl p-5 border border-red-500/20">
+                      <div className="glass card-shadow rounded-2xl p-4 sm:p-5 border border-red-500/20 w-full min-w-0">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-2">
                             <Stethoscope className="h-4 w-4 text-red-400" />
@@ -496,7 +506,7 @@ const handleSaveVitals = async () => {
                       </div>
 
                       {/* Habits */}
-                      <div className="glass card-shadow rounded-2xl p-5">
+                      <div className="glass card-shadow rounded-2xl p-4 sm:p-5 w-full min-w-0">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-purple-400" />
@@ -560,8 +570,8 @@ const handleSaveVitals = async () => {
               </div>
 
               {/* Right Column (Health Vitals Form) */}
-              <div className="lg:col-span-1">
-                <div className="glass card-shadow rounded-2xl p-6 space-y-4 h-fit animate-fade-in-up">
+              <div className="lg:col-span-1 w-full min-w-0">
+                <div className="glass card-shadow rounded-2xl p-4 sm:p-6 space-y-4 h-fit animate-fade-in-up w-full min-w-0">
                   <div className="flex items-center gap-2 border-b border-border/50 pb-3">
                     <User className="h-5 w-5 text-primary" />
                     <h3 className="text-lg font-semibold text-foreground">Health Vitals</h3>

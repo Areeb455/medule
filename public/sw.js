@@ -1,5 +1,5 @@
 // Medule PWA Service Worker
-const CACHE_NAME = "medule-pwa-v1";
+const CACHE_NAME = "medule-pwa-v3";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
@@ -35,33 +35,40 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch event: Network-first with cache fallback
+// Fetch event: Network-first, only fallback to index.html for navigation requests
 self.addEventListener("fetch", (event) => {
-  // Only handle GET requests and skip chrome-extension/external API calls
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
 
-  // For API endpoints, prefer fresh network response
-  if (url.pathname.startsWith("/api") || url.pathname.includes(":8000") || url.pathname.includes("onrender.com")) {
+  // Skip API calls and external origins
+  if (
+    url.pathname.startsWith("/api") ||
+    url.pathname.includes(":8000") ||
+    url.pathname.includes("onrender.com") ||
+    url.origin !== self.location.origin
+  ) {
     return;
   }
 
+  // HTML page navigation: Network first, fallback to cached root
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match("/"))
+    );
+    return;
+  }
+
+  // Static assets (JS, CSS, images): Network first, fallback to cached asset (NEVER return HTML for scripts)
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Cache successful page/script/style responses
-        if (response.status === 200 && (url.origin === self.location.origin)) {
+        if (response.status === 200) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, clone);
-          });
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
       })
-      .catch(() => {
-        return caches.match(event.request).then((cached) => {
-          return cached || caches.match("/");
-        });
-      })
+      .catch(() => caches.match(event.request))
   );
 });
+

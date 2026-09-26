@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Smartphone, Monitor, Download, CheckCircle2,
+  Activity, Smartphone, Monitor, Download, CheckCircle2,
   ExternalLink, Sparkles, ArrowRight, X, ShieldCheck,
   Zap, Share2, PlusSquare, Globe, Laptop
 } from "lucide-react";
@@ -113,15 +113,15 @@ export default function WebAppConversionModal({ isOpen, onClose }: WebAppConvers
           <X className="h-5 w-5" />
         </button>
 
-        {/* Modal Header */}
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20 text-primary">
-            <Smartphone className="h-6 w-6" />
+        {/* Modal Header with Authentic Medule Logo */}
+        <div className="flex items-center gap-3.5 mb-3">
+          <div className="w-13 h-13 p-3 rounded-2xl gradient-bg flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
+            <Activity className="h-7 w-7 text-primary-foreground stroke-[2.5]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
-                Web App Provision
+                Official Web App
               </span>
               {isStandalone ? (
                 <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 flex items-center gap-1">
@@ -135,8 +135,26 @@ export default function WebAppConversionModal({ isOpen, onClose }: WebAppConvers
               )}
             </div>
             <h2 className="text-2xl font-bold text-foreground mt-1">
-              Convert Medule to <span className="gradient-text">Web App (PWA)</span>
+              Install <span className="gradient-text">Medule Web App</span>
             </h2>
+          </div>
+        </div>
+
+        {/* Live App Icon Showcase */}
+        <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-secondary/30 border border-border/50 mb-5">
+          <img
+            src="/icon-192.png"
+            alt="Medule App Icon"
+            className="w-12 h-12 rounded-xl shadow-md border border-white/10"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-bold text-foreground">Medule - Digital Health Twin</p>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                PWA
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Matches website branding with real-time health sync</p>
           </div>
         </div>
 

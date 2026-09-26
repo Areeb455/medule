@@ -27,28 +27,17 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Register Progressive Web App Service Worker with auto-update
+      // Register Progressive Web App Service Worker
       if ("serviceWorker" in navigator && window.location.protocol.startsWith("http")) {
         window.addEventListener("load", () => {
           navigator.serviceWorker.register("/sw.js").then(
             (reg) => {
               console.log("Medule PWA ServiceWorker active with scope:", reg.scope);
-              // Force check for updates from server
-              reg.update();
             },
             (err) => {
               console.warn("Medule PWA ServiceWorker registration note:", err);
             }
           );
-        });
-
-        // Automatically reload when a new service worker version activates
-        let refreshing = false;
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
-          }
         });
       }
     </script>

@@ -10,6 +10,16 @@ import {
   Plus, Save, X, Trash2, Check, FileText,
 } from "lucide-react";
 
+function formatDateSafe(ts: any): string {
+  if (!ts) return "—";
+  try {
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? String(ts) : d.toLocaleString();
+  } catch {
+    return String(ts);
+  }
+}
+
 export default function Patients() {
   const { userId, patientName, authHeaders, API } = usePatient();
   const { toast } = useToast();
@@ -232,7 +242,7 @@ export default function Patients() {
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-foreground truncate">{patient.patient_name || "Unknown"}</p>
                         <p className="text-xs text-muted-foreground">
-                          Last active: {patient.last_active ? new Date(patient.last_active).toLocaleString() : "—"}
+                          Last active: {formatDateSafe(patient.last_active)}
                         </p>
                       </div>
                       <div className="hidden md:flex items-center gap-6 text-center">

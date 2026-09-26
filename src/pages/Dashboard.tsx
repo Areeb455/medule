@@ -17,6 +17,16 @@ import {
 
 const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6"];
 
+function formatDateSafe(ts: any): string {
+  if (!ts) return "";
+  try {
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? String(ts) : d.toLocaleDateString();
+  } catch {
+    return String(ts);
+  }
+}
+
 export default function Dashboard() {
   const { user } = useUser();
   const { userId, patientName, authHeaders, API } = usePatient();
@@ -255,7 +265,7 @@ const handleSaveVitals = async () => {
                       <div>
                         <h2 className="text-2xl font-bold text-foreground">{data.patient_name}</h2>
                         <p className="text-muted-foreground text-sm">
-                          Last active: {data.last_active ? new Date(data.last_active).toLocaleString() : "N/A"}
+                          Last active: {formatDateSafe(data.last_active) || "N/A"}
                         </p>
                       </div>
                       <div className="ml-auto grid grid-cols-3 gap-6 text-center">
@@ -355,7 +365,7 @@ const handleSaveVitals = async () => {
                                         {f.calories ? <span className="text-xs text-green-400 font-semibold shrink-0">{f.calories} kcal</span> : null}
                                       </div>
                                       <div className="text-xs opacity-60 mt-0.5">
-                                        {f.timestamp ? new Date(f.timestamp).toLocaleDateString() : ""}
+                                        {formatDateSafe(f.timestamp)}
                                       </div>
                                     </div>
                                     <div className="shrink-0 flex items-center gap-1">
@@ -428,7 +438,7 @@ const handleSaveVitals = async () => {
 
                                     <div className="flex items-center justify-between gap-2 mt-2 pt-1 border-t border-border/20 text-xs">
                                       <span className="opacity-60 text-[11px]">
-                                        {d.timestamp ? new Date(d.timestamp).toLocaleDateString() : ""}
+                                        {formatDateSafe(d.timestamp)}
                                       </span>
                                       <div className="flex items-center gap-1">
                                         {/* View Details */}
@@ -672,7 +682,7 @@ const handleSaveVitals = async () => {
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Recorded: {selectedReport.timestamp ? new Date(selectedReport.timestamp).toLocaleString() : "Recent"}
+                  Recorded: {formatDateSafe(selectedReport.timestamp) || "Recent"}
                 </p>
               </div>
             </div>

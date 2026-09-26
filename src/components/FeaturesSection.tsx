@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { FileText, UtensilsCrossed, Stethoscope, CalendarCheck, Building2, Fingerprint, Lightbulb, ArrowRight } from "lucide-react";
+import { FileText, UtensilsCrossed, Stethoscope, CalendarCheck, Building2, Fingerprint, Lightbulb, Smartphone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const features = [
@@ -10,7 +10,8 @@ const features = [
   { icon: CalendarCheck, title: "Habit Tracker", text: "Monitors and logs daily health habits.", href: "/habits" },
   { icon: Building2, title: "Patient Management System", text: "A tool for clinics to manage patient records.", href: "/patients" },
   { icon: Fingerprint, title: "Digital Twin / Real-Time Health Profile", text: "An automatically updating profile of the user's health status.", href: "/dashboard" },
-  { icon: Lightbulb, title: "Smart Insights & Recommendations", text: "Tailored products, natural remedies, OTC medicines, and care pathways from your reports and scans.", href: "/recommendations" },
+  { icon: Lightbulb, title: "Smart Insights & Product Recommendations", text: "Verified health products, partner affiliate links, OTC remedies, and natural care pathways.", href: "/recommendations" },
+  { icon: Smartphone, title: "Progressive Web App (PWA)", text: "Install Medule on any mobile or desktop device for 1-tap offline access.", href: "/recommendations" },
 ];
 
 const FeaturesSection = () => {

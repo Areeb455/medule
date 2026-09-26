@@ -796,8 +796,10 @@ Be warm, encouraging, and constructive. Use plain English."""
     }
 
 # ============================================================
-# SMART RECOMMENDATIONS & TREATMENT WAYS
+# SMART RECOMMENDATIONS & TREATMENT WAYS (DIGITAL TWIN ENGINE)
 # ============================================================
+import urllib.parse
+
 @app.get("/recommendations/{user_id}")
 async def get_recommendations(user_id: str):
     if db is None:
@@ -807,15 +809,52 @@ async def get_recommendations(user_id: str):
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found.")
 
-    disease_logs = [d async for d in db.disease_logs.find({"user_id": user_id}).sort("timestamp", -1).limit(8)]
-    if not disease_logs:
-        raise HTTPException(status_code=404, detail="No medical reports or disease scans found for this patient.")
+    # Accumulate ALL Digital Twin data streams (Vitals, Food Logs, Habit Logs, Disease/Reports)
+    vitals = patient.get("vitals", {})
+    food_logs    = [d async for d in db.food_logs.find({"user_id": user_id}).sort("timestamp", -1).limit(10)]
+    habit_logs   = [d async for d in db.habit_logs.find({"user_id": user_id}).sort("logged_at", -1).limit(10)]
+    disease_logs = [d async for d in db.disease_logs.find({"user_id": user_id}).sort("timestamp", -1).limit(10)]
 
+    # Check if user has ANY health data in their digital twin
+    if not vitals and not food_logs and not habit_logs and not disease_logs:
+        raise HTTPException(
+            status_code=404,
+            detail="No health records found yet. Log meals, habits, vitals, or upload medical reports to generate personalized Digital Twin recommendations."
+        )
+
+    # 1. Summarize Vitals & Demographics
+    vitals_parts = []
+    if vitals.get("age"): vitals_parts.append(f"Age: {vitals.get('age')} yrs")
+    if vitals.get("gender"): vitals_parts.append(f"Gender: {vitals.get('gender')}")
+    if vitals.get("bmi"): vitals_parts.append(f"BMI: {vitals.get('bmi')}")
+    if vitals.get("weight_kg"): vitals_parts.append(f"Weight: {vitals.get('weight_kg')} kg")
+    if vitals.get("height_cm"): vitals_parts.append(f"Height: {vitals.get('height_cm')} cm")
+    vitals_str = ", ".join(vitals_parts) if vitals_parts else "Not recorded"
+
+    # 2. Summarize Food & Nutrition Logs
+    food_summaries = []
+    for d in food_logs:
+        fname = d.get("food_name") or "Meal"
+        cals = d.get("calories", "")
+        verd = d.get("verdict", "")
+        food_summaries.append(f"- {fname} ({cals} kcal): {verd}")
+    food_text = "\n".join(food_summaries) if food_summaries else "No food logs recorded yet."
+
+    # 3. Summarize Lifestyle & Habit Logs
+    habit_summaries = []
+    for d in habit_logs:
+        act = d.get("active_minutes", 0)
+        idle = d.get("idle_minutes", 0)
+        sess = d.get("sessions", 1)
+        habit_summaries.append(f"- Active: {act:.0f}m, Screen/Idle: {idle:.0f}m ({sess} sessions)")
+    habit_text = "\n".join(habit_summaries) if habit_summaries else "No habit/screen time logs recorded yet."
+
+    # 4. Summarize Clinical Reports & Disease Scans
     detailed_reports = []
     source_reports = []
     for i, d in enumerate(disease_logs):
         full = d.get("full_result") or {}
-        cond = d.get("condition_name") or full.get("condition_name", "Unknown Finding")
+        cond = d.get("condition_name") or full.get("condition_name", "Clinical Finding")
         sev = d.get("severity") or full.get("severity", "Moderate")
         date_str = (d.get("timestamp") or "")[:10]
         desc = full.get("brief_description") or d.get("summary", "")
@@ -831,42 +870,66 @@ async def get_recommendations(user_id: str):
             "summary": desc[:180] + ("..." if len(desc) > 180 else ""),
         })
 
-        chunk = f"--- Record {i+1} ({date_str}) ---\nCondition/Diagnosis: {cond}\nSeverity: {sev}\n"
-        if desc:
-            chunk += f"Overview: {desc}\n"
-        if rep_sum:
-            chunk += f"Clinical & Lab Findings: {rep_sum[:1000]}\n"
-        if treatments:
-            chunk += f"Identified Treatments: {treatments}\n"
-        if causes:
-            chunk += f"Causes/Triggers: {causes}\n"
-        if risks:
-            chunk += f"Risks: {risks}\n"
+        chunk = f"--- Clinical Scan {i+1} ({date_str}) ---\nCondition/Diagnosis: {cond}\nSeverity: {sev}\n"
+        if desc: chunk += f"Overview: {desc}\n"
+        if rep_sum: chunk += f"Clinical & Lab Findings: {rep_sum[:800]}\n"
+        if treatments: chunk += f"Identified Treatments: {treatments}\n"
+        if causes: chunk += f"Causes: {causes}\n"
+        if risks: chunk += f"Risks: {risks}\n"
         detailed_reports.append(chunk)
 
-    conditions_summary = "\n\n".join(detailed_reports)
+    conditions_summary = "\n\n".join(detailed_reports) if detailed_reports else "No clinical pathology reports or disease scans logged yet."
 
-    prompt = f"""You are a senior clinical pharmacologist and healthcare wellness advisor AI.
-Analyze the patient's uploaded medical reports, pathology lab metrics, and disease scans below.
-Provide a comprehensive, tailored treatment and healthcare product guidance plan addressing their exact findings.
+    prompt = f"""You are Medule's Senior Clinical Pharmacologist, Digital Twin Health Intelligence Engine, and Lifestyle Medical Director.
+You think like the Digital Twin engine: synthesize ALL patient data streams—vitals/BMI, nutrition & food logs, daily habits/screen time, and pathology lab reports/disease scans.
 
-Patient Medical Records & Scans:
+=== PATIENT DIGITAL TWIN HEALTH PROFILE ===
+Patient Name: {patient.get('patient_name', 'Patient')}
+Vitals & Demographics: {vitals_str}
+
+Recent Nutrition & Food Logs:
+{food_text}
+
+Recent Lifestyle & Habit Logs (Screen Time / Sedentary Activity):
+{habit_text}
+
+Clinical Reports & Disease Recognition Scans:
 {conditions_summary}
+==========================================
+
+Provide a comprehensive, highly personalized treatment and healthcare product guidance plan.
+CRITICAL REQUIREMENTS FOR PRODUCTS & AFFILIATE COMMERCE:
+1. Every recommendation item MUST name an ACTUAL, REAL-WORLD commercial product or item with brand name and model (e.g. "Omron Platinum Wireless Blood Pressure Monitor", "Nature Made Vitamin D3 2000 IU Softgels", "CeraVe SA Cream for Rough & Bumpy Skin", "Accu-Chek Guide Me Blood Glucose Meter", "TheraTears Dry Eye Therapy Lubricant Drops", "Optimum Nutrition Gold Standard 100% Whey", "Bausch + Lomb PreserVision AREDS 2 Eye Vitamins", "Twinings Pure Peppermint Organic Tea", "TheraBand Professional Non-Latex Resistance Bands", "Philips Sonicare 4100 Electric Toothbrush").
+2. Clearly indicate which Digital Twin stream this item targets (e.g., "Screen Time & Eye Fatigue", "Elevated HbA1c Lab Report", "Low Protein / Micronutrient Gap In Food Logs", "Vitals & BMI Optimization").
+3. Assign a realistic estimated price range (e.g., "$18 - $28" or "₹499 - ₹899").
+4. Specify a trusted store partner (e.g., "Amazon Health", "Tata 1mg", "Apollo Pharmacy", "iHerb").
+5. Provide a partner affiliate badge (e.g., "Amazon Choice", "Clinically Validated", "Verified Partner", "Top Rated").
 
 You MUST return ONLY a valid JSON object with NO markdown, NO backticks, and NO code fences.
 
-Exact JSON structure required:
+Exact JSON structure:
 {{
-  "overall_summary": "A warm, empathetic 3-4 sentence summary of the patient's health findings, abnormal values identified, and how this recommendation plan supports their recovery.",
+  "overall_summary": "A warm, empathetic 3-4 sentence clinical summary synthesizing their complete digital twin (vitals, diet, habits, and clinical reports) and explaining how this recommendation roadmap supports their health.",
+  "data_sources_analyzed": {{
+    "vitals_summary": "{vitals_str}",
+    "food_count": {len(food_logs)},
+    "habit_count": {len(habit_logs)},
+    "disease_count": {len(disease_logs)}
+  }},
   "recommendations": [
     {{
-      "category": "Natural Ways & Home Remedies",
+      "category": "Health Products & Medical Devices",
       "items": [
         {{
-          "name": "Specific natural remedy or dietary habit",
-          "reason": "Explicitly mention which lab metric or scanned condition this addresses and why it helps.",
+          "name": "Actual commercial product name with brand (e.g. Omron Platinum Blood Pressure Monitor)",
+          "brand": "Brand name (e.g. Omron)",
+          "target_source": "Vitals & Blood Pressure Tracking",
+          "reason": "Why this specific device helps based on their Digital Twin data.",
           "priority": "High",
-          "instructions": "Practical advice on how to use, daily frequency, or lifestyle guideline."
+          "estimated_price": "$45 - $65",
+          "affiliate_store": "Amazon Health",
+          "affiliate_badge": "Clinically Validated",
+          "instructions": "Practical guidelines on how and when to use."
         }}
       ]
     }},
@@ -874,10 +937,15 @@ Exact JSON structure required:
       "category": "Medicines & OTC Treatments",
       "items": [
         {{
-          "name": "Over-The-Counter medication, safe topical ointment, or non-prescription relief",
-          "reason": "Why this OTC medication is suitable for the diagnosed symptom/condition.",
+          "name": "Actual OTC medication or safe topical relief (e.g. Voltaren Arthritis Pain Relief Gel 100g)",
+          "brand": "Brand name (e.g. Voltaren)",
+          "target_source": "Clinical Reports & Musculoskeletal Findings",
+          "reason": "Why this OTC medication relieves symptoms identified in their scan or logs.",
           "priority": "High",
-          "instructions": "Recommended dosage context and precautions (e.g. consult doctor if symptoms persist)."
+          "estimated_price": "$12 - $18",
+          "affiliate_store": "Tata 1mg / Apollo",
+          "affiliate_badge": "Verified OTC",
+          "instructions": "Recommended dosage, application instructions, and precautions."
         }}
       ]
     }},
@@ -885,32 +953,47 @@ Exact JSON structure required:
       "category": "Supplements & Nutrients",
       "items": [
         {{
-          "name": "Targeted vitamin, mineral, or antioxidant (e.g., Vitamin D3, Iron, Omega-3)",
-          "reason": "Tied directly to nutritional deficiencies or metabolic demands in their report.",
+          "name": "Actual brand supplement (e.g. Nature Made Vitamin D3 2000 IU Softgels)",
+          "brand": "Brand name (e.g. Nature Made)",
+          "target_source": "Food Deficiencies & Blood Lab Markers",
+          "reason": "Tied directly to their nutritional gaps or lab deficiency.",
           "priority": "Medium",
-          "instructions": "Optimal timing (e.g., take with meals) and duration."
+          "estimated_price": "$14 - $22",
+          "affiliate_store": "Amazon Health",
+          "affiliate_badge": "Amazon Choice",
+          "instructions": "Optimal timing (e.g. take with breakfast fat) and duration."
         }}
       ]
     }},
     {{
-      "category": "Health Products & Devices",
+      "category": "Nutrition & Natural Superfoods",
       "items": [
         {{
-          "name": "Medical/wellness monitoring tool or physical product (e.g., Digital BP Monitor, Glucometer, Nebulizer, Ergonomic Support)",
-          "reason": "How this device or product aids monitoring and daily care for their findings.",
+          "name": "Specific wholesome natural remedy or functional food (e.g. Organic Matcha Green Tea Powder / Rolled Oats)",
+          "brand": "Brand name or pure source",
+          "target_source": "Dietary Macro Balancing & Gut Health",
+          "reason": "Addresses dietary gaps or metabolic optimization from food logs.",
           "priority": "Medium",
-          "instructions": "Usage guidelines for home health management."
+          "estimated_price": "$9 - $15",
+          "affiliate_store": "Amazon Health",
+          "affiliate_badge": "100% Natural",
+          "instructions": "Preparation and daily serving suggestions."
         }}
       ]
     }},
     {{
-      "category": "Care & Treatment Pathway",
+      "category": "Care Pathway & Daily Routine",
       "items": [
         {{
-          "name": "Clinical Action Step or Follow-up Milestone",
-          "reason": "Long-term health preservation and risk avoidance.",
+          "name": "Specific action step, ergonomic tool, or clinical milestone",
+          "brand": "Medule Care Protocol",
+          "target_source": "High Screen Time & Sedentary Habit Logs",
+          "reason": "Long-term health preservation and risk reduction.",
           "priority": "High",
-          "instructions": "Recommended timeline for next tests or specialist consultation."
+          "estimated_price": "Free / Lifestyle",
+          "affiliate_store": "Medule Wellness",
+          "affiliate_badge": "Core Habit",
+          "instructions": "Recommended daily frequency or milestone schedule."
         }}
       ]
     }}
@@ -918,17 +1001,34 @@ Exact JSON structure required:
 }}
 
 CRITICAL RULES:
-- Include at least 2-3 items in EACH category.
+- Include 2-3 items in EACH category.
 - Priority MUST be exactly one of: "High", "Medium", "Low".
-- Do NOT prescribe dangerous or controlled prescription-only drugs. Stick strictly to Over-The-Counter (OTC) remedies, safe topical products, dietary changes, evidence-based natural ways, supplements, and health devices.
-- Connect every recommendation explicitly to the patient's uploaded data or scans.
-- Tone must be supportive, clear, and reassuring."""
+- Real brand names for products, supplements, and OTC treatments are mandatory.
+- Do NOT prescribe controlled or dangerous prescription drugs. Focus on OTC therapies, supportive wellness products, supplements, and lifestyle habits.
+- Ground every item in their Digital Twin data (vitals, diet, habits, or reports)."""
 
     try:
         messages = [{"role": "user", "content": prompt}]
         raw = await call_openrouter(messages, model=TEXT_MODEL)
         result = json.loads(clean_json(raw))
+
+        # Guarantee high-quality affiliate links for every recommendation item
+        for cat in result.get("recommendations", []):
+            for item in cat.get("items", []):
+                prod_name = item.get("name", "")
+                store = item.get("affiliate_store", "Amazon Health")
+                query = urllib.parse.quote_plus(prod_name)
+                if "1mg" in store.lower() or "apollo" in store.lower():
+                    item["affiliate_link"] = f"https://www.1mg.com/search/all?name={query}&utm_source=medule_affiliate"
+                elif "wellness" in store.lower():
+                    item["affiliate_link"] = f"https://www.amazon.com/s?k={query}&tag=medule-21"
+                else:
+                    item["affiliate_link"] = f"https://www.amazon.com/s?k={query}&tag=medule-21"
+
         result["source_reports"] = source_reports
+        result["recent_food"] = [d.get("summary", "") for d in food_logs[:5]]
+        result["recent_habits"] = [d.get("summary", "") for d in habit_logs[:5]]
+        result["vitals"] = vitals
         return result
     except json.JSONDecodeError as e:
         logger.error(f"Recommendations JSON parse error: {e}")
@@ -936,3 +1036,4 @@ CRITICAL RULES:
     except Exception as e:
         logger.error(f"Recommendations generation error: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate recommendations.")
+

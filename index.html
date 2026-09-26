@@ -2,19 +2,44 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Medule</title>
-    <meta name="description" content="AI-Powered Digital Health Twin Platform" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>Medule | AI Digital Health Twin</title>
+    <meta name="description" content="AI-Powered Digital Health Twin, Medical Report Diagnostics & Personalized Clinical Recommendations" />
 
-    <meta property="og:title" content="Medule" />
-    <meta property="og:description" content="AI-Powered Digital Health Twin Platform" />
+    <!-- Web App & PWA Settings -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0ea5e9" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Medule" />
+    <link rel="icon" type="image/svg+xml" href="/medule-logo.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!-- Open Graph & Social -->
+    <meta property="og:title" content="Medule - Digital Health Twin Platform" />
+    <meta property="og:description" content="AI-Powered Digital Health Twin, Medical Diagnosis & Personalized Clinical Recommendations" />
     <meta property="og:type" content="website" />
-
     <meta name="twitter:card" content="summary_large_image" />
   </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Register Progressive Web App Service Worker
+      if ("serviceWorker" in navigator && window.location.protocol.startsWith("http")) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js").then(
+            (reg) => {
+              console.log("Medule PWA ServiceWorker active with scope:", reg.scope);
+            },
+            (err) => {
+              console.warn("Medule PWA ServiceWorker registration note:", err);
+            }
+          );
+        });
+      }
+    </script>
   </body>
 </html>

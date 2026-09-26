@@ -96,9 +96,12 @@ export default function WebAppConversionModal({ isOpen, onClose }: WebAppConvers
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-fade-in">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-background/80 backdrop-blur-md animate-fade-in overflow-y-auto overscroll-none"
+      onClick={onClose}
+    >
       <div
-        className="relative w-full max-w-2xl bg-card border border-border/80 rounded-3xl p-6 sm:p-8 card-shadow shadow-2xl overflow-hidden animate-scale-in"
+        className="relative w-full max-w-2xl max-h-[92dvh] sm:max-h-[88vh] flex flex-col bg-card border border-border/80 rounded-2xl sm:rounded-3xl card-shadow shadow-2xl overflow-hidden animate-scale-in my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Glow ambient background */}
@@ -107,206 +110,211 @@ export default function WebAppConversionModal({ isOpen, onClose }: WebAppConvers
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+          className="absolute top-4 right-4 z-10 p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
           aria-label="Close modal"
         >
           <X className="h-5 w-5" />
         </button>
 
-        {/* Modal Header with Authentic Medule Logo */}
-        <div className="flex items-center gap-3.5 mb-3">
-          <div className="w-13 h-13 p-3 rounded-2xl gradient-bg flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
-            <Activity className="h-7 w-7 text-primary-foreground stroke-[2.5]" />
+        {/* Modal Header (Fixed / Non-scrolling) */}
+        <div className="p-4 sm:p-6 pb-3 border-b border-border/40 shrink-0 pr-12">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl gradient-bg flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
+              <Activity className="h-6 w-6 text-primary-foreground stroke-[2.5]" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] sm:text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
+                  Official Web App
+                </span>
+                {isStandalone ? (
+                  <span className="text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                    Running in App Mode
+                  </span>
+                ) : (
+                  <span className="text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                    Ready to Install
+                  </span>
+                )}
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground mt-0.5">
+                Install <span className="gradient-text">Medule Web App</span>
+              </h2>
+            </div>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
-                Official Web App
-              </span>
-              {isStandalone ? (
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                  Running in Web App Mode
+        </div>
+
+        {/* Scrollable Body Content */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
+          {/* Live App Icon Showcase */}
+          <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-secondary/30 border border-border/50">
+            <img
+              src="/icon-192.png"
+              alt="Medule App Icon"
+              className="w-12 h-12 rounded-xl shadow-md border border-white/10 shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-bold text-foreground truncate">Medule - Digital Health Twin</p>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 shrink-0">
+                  PWA
                 </span>
-              ) : (
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                  Ready to Convert
-                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground truncate">Authentic website logo with real-time health sync</p>
+            </div>
+          </div>
+
+          <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
+            Transform Medule from a browser tab into a high-performance standalone desktop or mobile Web Application. Enjoy instant launch, offline digital twin access, and zero address-bar clutter.
+          </p>
+
+          {/* Core Value Props Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="p-2.5 sm:p-3 rounded-xl bg-secondary/30 border border-border/40 text-center space-y-1">
+              <Zap className="h-4 w-4 text-amber-400 mx-auto" />
+              <p className="font-semibold text-foreground text-xs">Instant Launch</p>
+              <p className="text-[10px] text-muted-foreground">1-Tap home screen</p>
+            </div>
+            <div className="p-2.5 sm:p-3 rounded-xl bg-secondary/30 border border-border/40 text-center space-y-1">
+              <Monitor className="h-4 w-4 text-cyan-400 mx-auto" />
+              <p className="font-semibold text-foreground text-xs">Standalone UI</p>
+              <p className="text-[10px] text-muted-foreground">Clean app window</p>
+            </div>
+            <div className="p-2.5 sm:p-3 rounded-xl bg-secondary/30 border border-border/40 text-center space-y-1">
+              <ShieldCheck className="h-4 w-4 text-emerald-400 mx-auto" />
+              <p className="font-semibold text-foreground text-xs">Offline Cache</p>
+              <p className="text-[10px] text-muted-foreground">Saved health data</p>
+            </div>
+            <div className="p-2.5 sm:p-3 rounded-xl bg-secondary/30 border border-border/40 text-center space-y-1">
+              <Globe className="h-4 w-4 text-purple-400 mx-auto" />
+              <p className="font-semibold text-foreground text-xs">Cross Platform</p>
+              <p className="text-[10px] text-muted-foreground">iOS, Android, PC</p>
+            </div>
+          </div>
+
+          {/* Platform Selection Tabs */}
+          <div className="space-y-3 pt-1">
+            <div className="flex border-b border-border/60 pb-2 gap-1.5 text-xs overflow-x-auto scrollbar-none">
+              <button
+                onClick={() => setPlatform("desktop")}
+                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all ${
+                  platform === "desktop"
+                    ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                }`}
+              >
+                <Laptop className="h-3.5 w-3.5 inline mr-1" />
+                Desktop
+              </button>
+              <button
+                onClick={() => setPlatform("ios")}
+                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all ${
+                  platform === "ios"
+                    ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                }`}
+              >
+                <Smartphone className="h-3.5 w-3.5 inline mr-1" />
+                iPhone / iPad
+              </button>
+              <button
+                onClick={() => setPlatform("android")}
+                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all ${
+                  platform === "android"
+                    ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                }`}
+              >
+                <Smartphone className="h-3.5 w-3.5 inline mr-1" />
+                Android
+              </button>
+            </div>
+
+            {/* Platform Instructions */}
+            <div className="bg-secondary/20 border border-border/50 rounded-2xl p-3.5 text-xs space-y-2">
+              {platform === "desktop" && (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">1</div>
+                    <p className="text-muted-foreground">
+                      Click the <strong className="text-foreground font-semibold">"Install Web App Now"</strong> button below or look for the <strong className="text-foreground font-semibold">Install icon (⊕)</strong> in your browser address bar.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</div>
+                    <p className="text-muted-foreground">
+                      Select <strong className="text-foreground font-semibold">"Install"</strong>. Medule will create a desktop icon and open in its dedicated app frame.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {platform === "ios" && (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <Share2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <p className="text-muted-foreground">
+                      Tap the <strong className="text-foreground font-semibold">Share</strong> button in Safari's bottom toolbar.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <PlusSquare className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <p className="text-muted-foreground">
+                      Scroll down and tap <strong className="text-foreground font-semibold">"Add to Home Screen"</strong>.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />
+                    <p className="text-muted-foreground">
+                      Tap <strong className="text-foreground font-semibold">"Add"</strong> in top-right. Medule will now launch like a native iOS app!
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {platform === "android" && (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">1</div>
+                    <p className="text-muted-foreground">
+                      Tap the <strong className="text-foreground font-semibold">"Install Web App Now"</strong> button below or open Chrome menu (<strong className="text-foreground font-semibold">⋮</strong>).
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</div>
+                    <p className="text-muted-foreground">
+                      Select <strong className="text-foreground font-semibold">"Install App"</strong> or <strong className="text-foreground font-semibold">"Add to Home screen"</strong>.
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
-            <h2 className="text-2xl font-bold text-foreground mt-1">
-              Install <span className="gradient-text">Medule Web App</span>
-            </h2>
           </div>
         </div>
 
-        {/* Live App Icon Showcase */}
-        <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-secondary/30 border border-border/50 mb-5">
-          <img
-            src="/icon-192.png"
-            alt="Medule App Icon"
-            className="w-12 h-12 rounded-xl shadow-md border border-white/10"
-          />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-xs font-bold text-foreground">Medule - Digital Health Twin</p>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
-                PWA
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground">Matches website branding with real-time health sync</p>
-          </div>
-        </div>
-
-        <p className="text-muted-foreground text-xs sm:text-sm mt-1 mb-6 leading-relaxed">
-          Transform Medule from a browser tab into a high-performance, standalone desktop or mobile Web Application. Enjoy instant launch, offline digital twin access, and zero address-bar clutter.
-        </p>
-
-        {/* Core Value Props Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-6">
-          <div className="p-3 rounded-xl bg-secondary/30 border border-border/40 text-center space-y-1">
-            <Zap className="h-4 w-4 text-amber-400 mx-auto" />
-            <p className="font-semibold text-foreground text-xs">Instant Launch</p>
-            <p className="text-[10px] text-muted-foreground">1-Tap from desktop or home screen</p>
-          </div>
-          <div className="p-3 rounded-xl bg-secondary/30 border border-border/40 text-center space-y-1">
-            <Monitor className="h-4 w-4 text-cyan-400 mx-auto" />
-            <p className="font-semibold text-foreground text-xs">Standalone UI</p>
-            <p className="text-[10px] text-muted-foreground">Clean app window without browser tabs</p>
-          </div>
-          <div className="p-3 rounded-xl bg-secondary/30 border border-border/40 text-center space-y-1">
-            <ShieldCheck className="h-4 w-4 text-emerald-400 mx-auto" />
-            <p className="font-semibold text-foreground text-xs">Offline Cache</p>
-            <p className="text-[10px] text-muted-foreground">View saved twin & reports offline</p>
-          </div>
-          <div className="p-3 rounded-xl bg-secondary/30 border border-border/40 text-center space-y-1">
-            <Globe className="h-4 w-4 text-purple-400 mx-auto" />
-            <p className="font-semibold text-foreground text-xs">Cross Platform</p>
-            <p className="text-[10px] text-muted-foreground">Windows, Mac, iOS, & Android</p>
-          </div>
-        </div>
-
-        {/* Platform Selection Tabs */}
-        <div className="space-y-4">
-          <div className="flex border-b border-border/60 pb-2 gap-2 text-xs">
-            <button
-              onClick={() => setPlatform("desktop")}
-              className={`px-3.5 py-1.5 rounded-lg font-medium transition-all ${
-                platform === "desktop"
-                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-              }`}
-            >
-              <Laptop className="h-3.5 w-3.5 inline mr-1.5" />
-              Desktop (Chrome / Edge / Mac)
-            </button>
-            <button
-              onClick={() => setPlatform("ios")}
-              className={`px-3.5 py-1.5 rounded-lg font-medium transition-all ${
-                platform === "ios"
-                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-              }`}
-            >
-              <Smartphone className="h-3.5 w-3.5 inline mr-1.5" />
-              iPhone & iPad (Safari)
-            </button>
-            <button
-              onClick={() => setPlatform("android")}
-              className={`px-3.5 py-1.5 rounded-lg font-medium transition-all ${
-                platform === "android"
-                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-              }`}
-            >
-              <Smartphone className="h-3.5 w-3.5 inline mr-1.5" />
-              Android
-            </button>
-          </div>
-
-          {/* Platform Instructions */}
-          <div className="bg-secondary/20 border border-border/50 rounded-2xl p-4 text-xs space-y-2.5">
-            {platform === "desktop" && (
-              <div className="space-y-2">
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">1</div>
-                  <p className="text-muted-foreground">
-                    Click the <strong className="text-foreground font-semibold">"Install Medule Web App"</strong> button below or look for the <strong className="text-foreground font-semibold">Install icon (⊕)</strong> on the right side of your browser address bar.
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</div>
-                  <p className="text-muted-foreground">
-                    Select <strong className="text-foreground font-semibold">"Install"</strong> in the prompt. Medule will create a desktop icon and open in its dedicated app frame.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {platform === "ios" && (
-              <div className="space-y-2">
-                <div className="flex items-start gap-2.5">
-                  <Share2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <p className="text-muted-foreground">
-                    Tap the <strong className="text-foreground font-semibold">Share</strong> button in Safari's bottom toolbar.
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <PlusSquare className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <p className="text-muted-foreground">
-                    Scroll down and tap <strong className="text-foreground font-semibold">"Add to Home Screen"</strong>.
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />
-                  <p className="text-muted-foreground">
-                    Tap <strong className="text-foreground font-semibold">"Add"</strong> in top-right corner. Medule will now appear alongside your native apps!
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {platform === "android" && (
-              <div className="space-y-2">
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">1</div>
-                  <p className="text-muted-foreground">
-                    Tap the <strong className="text-foreground font-semibold">"Install Medule Web App"</strong> button below or tap the Chrome menu (<strong className="text-foreground font-semibold">⋮</strong>).
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</div>
-                  <p className="text-muted-foreground">
-                    Select <strong className="text-foreground font-semibold">"Install App"</strong> or <strong className="text-foreground font-semibold">"Add to Home screen"</strong>.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Modal Action CTA */}
-        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/50">
-          <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+        {/* Modal Action CTA (Sticky Footer, Always Accessible) */}
+        <div className="p-3 sm:p-5 border-t border-border/50 shrink-0 bg-card/95 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 self-start sm:self-auto">
             <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-            PWA Manifest & Service Worker Active
+            <span>PWA Ready for Home Screen</span>
           </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={onClose}
-              className="rounded-full px-4 text-xs w-1/2 sm:w-auto"
+              className="rounded-full px-4 text-xs flex-1 sm:flex-initial"
             >
-              Cancel
+              Close
             </Button>
             <Button
               onClick={handleInstallApp}
-              className="gradient-bg rounded-full px-6 text-xs font-semibold shadow-md hover:opacity-95 w-1/2 sm:w-auto"
+              className="gradient-bg rounded-full px-5 text-xs font-semibold shadow-md hover:opacity-95 flex-1 sm:flex-initial"
             >
-              <Download className="h-3.5 w-3.5 mr-2" />
-              {deferredPrompt ? "Install Web App Now" : "Install / Open Standalone"}
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              {deferredPrompt ? "Install Now" : platform === "desktop" ? "Open Standalone" : "Install App"}
             </Button>
           </div>
         </div>

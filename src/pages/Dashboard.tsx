@@ -8,6 +8,7 @@ import { usePatient } from "@/hooks/usePatient";
 import {
   Brain, Heart, Activity, Clock, Utensils, 
   Stethoscope, RefreshCw, TrendingUp, AlertCircle, User,
+  Trash2, Eye, X, FileText, AlertTriangle,
 } from "lucide-react";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
@@ -24,6 +25,11 @@ export default function Dashboard() {
   const [data, setData]       = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
+
+  // Report detail modal and deletion state
+  const [selectedReport, setSelectedReport]   = useState<any | null>(null);
+  const [deletingId, setDeletingId]           = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [vitals, setVitals] = useState<any>({ age: "", height_cm: "", weight_kg: "", gender: "" });
 const [vitalsSaving, setVitalsSaving] = useState(false);
@@ -87,6 +93,93 @@ const handleSaveVitals = async () => {
   useEffect(() => {
     if (userId) fetchTwin();
   }, [userId]);
+
+  const handleDeleteDisease = async (logId: string) => {
+    if (!logId || !userId) return;
+    setDeletingId(logId);
+    try {
+      const headers = await authHeaders();
+      const res = await fetch(`${API}/disease-log/${logId}?user_id=${userId}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: "Failed to delete" }));
+        throw new Error(err.detail || "Failed to delete report");
+      }
+      toast({ title: "Report Deleted", description: "The medical report was removed from your history." });
+      setConfirmDeleteId(null);
+      if (selectedReport && (selectedReport._id === logId || selectedReport.id === logId)) {
+        setSelectedReport(null);
+      }
+      setData((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          disease_count: Math.max(0, (prev.disease_count || 1) - 1),
+          recent_diseases: (prev.recent_diseases || []).filter((x: any) => (x._id || x.id) !== logId),
+        };
+      });
+    } catch (err: any) {
+      toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDeleteFood = async (logId: string) => {
+    if (!logId || !userId) return;
+    setDeletingId(logId);
+    try {
+      const headers = await authHeaders();
+      const res = await fetch(`${API}/food-log/${logId}?user_id=${userId}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (!res.ok) throw new Error("Failed to delete food entry");
+      toast({ title: "Food Entry Deleted", description: "Removed from your nutritional history." });
+      setConfirmDeleteId(null);
+      setData((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          food_count: Math.max(0, (prev.food_count || 1) - 1),
+          recent_food: (prev.recent_food || []).filter((x: any) => (x._id || x.id) !== logId),
+        };
+      });
+    } catch (err: any) {
+      toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDeleteHabit = async (logId: string) => {
+    if (!logId || !userId) return;
+    setDeletingId(logId);
+    try {
+      const headers = await authHeaders();
+      const res = await fetch(`${API}/habit-log/${logId}?user_id=${userId}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (!res.ok) throw new Error("Failed to delete habit entry");
+      toast({ title: "Habit Entry Deleted", description: "Removed from your habit history." });
+      setConfirmDeleteId(null);
+      setData((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          habit_count: Math.max(0, (prev.habit_count || 1) - 1),
+          recent_habits: (prev.recent_habits || []).filter((x: any) => (x._id || x.id) !== logId),
+        };
+      });
+    } catch (err: any) {
+      toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Radar chart: completeness of health data
   const radarData = data
@@ -241,66 +334,211 @@ const handleSaveVitals = async () => {
 
                       {/* Food */}
                       <div className="glass card-shadow rounded-2xl p-5">
-                        <div className="flex items-center gap-2 mb-4">
-                          <Utensils className="h-4 w-4 text-green-400" />
-                          <h4 className="font-semibold text-foreground">Recent Food</h4>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <Utensils className="h-4 w-4 text-green-400" />
+                            <h4 className="font-semibold text-foreground text-sm">Recent Food</h4>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{data.recent_food?.length || 0} entries</span>
                         </div>
                         <div className="space-y-2">
                           {data.recent_food?.length > 0
-                            ? data.recent_food.slice(0, 5).map((f: any, i: number) => (
-                                <div key={i} className="text-sm text-muted-foreground bg-secondary/20 rounded-lg px-3 py-2">
-                                  <span className="text-foreground font-medium">{f.food_name || "—"}</span>
-                                  <span className="ml-2 text-xs">{f.calories ? `${f.calories} kcal` : ""}</span>
-                                  <div className="text-xs opacity-60 mt-0.5">
-                                    {f.timestamp ? new Date(f.timestamp).toLocaleDateString() : ""}
+                            ? data.recent_food.slice(0, 5).map((f: any, i: number) => {
+                                const logId = f._id || f.id || `f-${i}`;
+                                const isConfirming = confirmDeleteId === logId;
+                                const isDeleting = deletingId === logId;
+                                return (
+                                  <div key={i} className="group relative text-sm text-muted-foreground bg-secondary/20 hover:bg-secondary/30 transition-all rounded-lg p-3 flex items-center justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-foreground font-medium truncate">{f.food_name || "—"}</span>
+                                        {f.calories ? <span className="text-xs text-green-400 font-semibold shrink-0">{f.calories} kcal</span> : null}
+                                      </div>
+                                      <div className="text-xs opacity-60 mt-0.5">
+                                        {f.timestamp ? new Date(f.timestamp).toLocaleDateString() : ""}
+                                      </div>
+                                    </div>
+                                    <div className="shrink-0 flex items-center gap-1">
+                                      {isConfirming ? (
+                                        <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 rounded px-1.5 py-0.5">
+                                          <span className="text-[10px] text-red-400 font-semibold">Delete?</span>
+                                          <button
+                                            onClick={() => handleDeleteFood(logId)}
+                                            disabled={isDeleting}
+                                            className="text-red-400 hover:text-red-300 p-1"
+                                            title="Confirm delete"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </button>
+                                          <button
+                                            onClick={() => setConfirmDeleteId(null)}
+                                            className="text-muted-foreground hover:text-foreground p-1"
+                                            title="Cancel"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => setConfirmDeleteId(logId)}
+                                          className="text-muted-foreground/60 hover:text-red-400 opacity-60 hover:opacity-100 p-1 rounded transition-all"
+                                          title="Delete food entry"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))
+                                );
+                              })
                             : <p className="text-sm text-muted-foreground">No food logs yet.</p>
                           }
                         </div>
                       </div>
 
-                      {/* Disease */}
-                      <div className="glass card-shadow rounded-2xl p-5">
-                        <div className="flex items-center gap-2 mb-4">
-                          <Stethoscope className="h-4 w-4 text-red-400" />
-                          <h4 className="font-semibold text-foreground">Recent Conditions</h4>
+                      {/* Medical Reports & Disease Conditions */}
+                      <div className="glass card-shadow rounded-2xl p-5 border border-red-500/20">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <Stethoscope className="h-4 w-4 text-red-400" />
+                            <h4 className="font-semibold text-foreground text-sm">Medical Reports</h4>
+                          </div>
+                          <span className="text-xs text-red-400/80 font-medium">{data.recent_diseases?.length || 0} reports</span>
                         </div>
                         <div className="space-y-2">
                           {data.recent_diseases?.length > 0
-                            ? data.recent_diseases.slice(0, 5).map((d: any, i: number) => (
-                                <div key={i} className="text-sm text-muted-foreground bg-secondary/20 rounded-lg px-3 py-2">
-                                  <span className="text-foreground font-medium">{d.condition_name || "—"}</span>
-                                  <span className={`ml-2 text-xs font-semibold ${
-                                    d.severity === "Mild" ? "text-green-400"
-                                    : d.severity === "Moderate" ? "text-yellow-400"
-                                    : "text-red-400"
-                                  }`}>{d.severity}</span>
-                                  <div className="text-xs opacity-60 mt-0.5">
-                                    {d.timestamp ? new Date(d.timestamp).toLocaleDateString() : ""}
+                            ? data.recent_diseases.slice(0, 6).map((d: any, i: number) => {
+                                const logId = d._id || d.id || `d-${i}`;
+                                const isConfirming = confirmDeleteId === logId;
+                                const isDeleting = deletingId === logId;
+                                return (
+                                  <div key={i} className="group text-sm text-muted-foreground bg-secondary/20 hover:bg-secondary/35 rounded-lg p-3 transition-all border border-border/40 hover:border-red-500/30">
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                      <span className="text-foreground font-semibold text-sm truncate flex-1" title={d.condition_name}>
+                                        {d.condition_name || "Medical Report"}
+                                      </span>
+                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                        d.severity === "Mild" ? "bg-green-500/10 text-green-400 border-green-500/30"
+                                        : d.severity === "Moderate" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
+                                        : "bg-red-500/10 text-red-400 border-red-500/30"
+                                      }`}>
+                                        {d.severity || "Report"}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-2 mt-2 pt-1 border-t border-border/20 text-xs">
+                                      <span className="opacity-60 text-[11px]">
+                                        {d.timestamp ? new Date(d.timestamp).toLocaleDateString() : ""}
+                                      </span>
+                                      <div className="flex items-center gap-1">
+                                        {/* View Details */}
+                                        <button
+                                          onClick={() => setSelectedReport(d)}
+                                          className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-primary/10 transition-all"
+                                          title="View full report"
+                                        >
+                                          <Eye className="h-3 w-3" /> View
+                                        </button>
+
+                                        {/* Delete Action */}
+                                        {isConfirming ? (
+                                          <div className="flex items-center gap-1 bg-red-500/15 border border-red-500/40 rounded px-1.5 py-0.5">
+                                            <span className="text-[10px] text-red-400 font-bold">Delete?</span>
+                                            <button
+                                              onClick={() => handleDeleteDisease(logId)}
+                                              disabled={isDeleting}
+                                              className="text-red-400 hover:text-red-300 font-bold px-1"
+                                              title="Confirm Delete"
+                                            >
+                                              {isDeleting ? "..." : "Yes"}
+                                            </button>
+                                            <button
+                                              onClick={() => setConfirmDeleteId(null)}
+                                              className="text-muted-foreground hover:text-foreground px-1"
+                                              title="Cancel"
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            onClick={() => setConfirmDeleteId(logId)}
+                                            className="text-muted-foreground/60 hover:text-red-400 flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-red-500/10 transition-all"
+                                            title="Delete this report"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                            <span className="text-[11px]">Delete</span>
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              ))
-                            : <p className="text-sm text-muted-foreground">No disease logs yet.</p>
+                                );
+                              })
+                            : (
+                              <div className="text-center py-6 text-muted-foreground">
+                                <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                                <p className="text-xs">No medical reports saved yet.</p>
+                              </div>
+                            )
                           }
                         </div>
                       </div>
 
                       {/* Habits */}
                       <div className="glass card-shadow rounded-2xl p-5">
-                        <div className="flex items-center gap-2 mb-4">
-                          <Clock className="h-4 w-4 text-purple-400" />
-                          <h4 className="font-semibold text-foreground">Recent Habits</h4>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-purple-400" />
+                            <h4 className="font-semibold text-foreground text-sm">Recent Habits</h4>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{data.recent_habits?.length || 0} entries</span>
                         </div>
                         <div className="space-y-2">
                           {data.recent_habits?.length > 0
-                            ? data.recent_habits.slice(0, 5).map((h: any, i: number) => (
-                                <div key={i} className="text-sm text-muted-foreground bg-secondary/20 rounded-lg px-3 py-2">
-                                  <span className="text-foreground font-medium">{h.date || "—"}</span>
-                                  <div className="text-xs opacity-80 mt-0.5">{h.summary}</div>
-                                </div>
-                              ))
+                            ? data.recent_habits.slice(0, 5).map((h: any, i: number) => {
+                                const logId = h._id || h.id || `h-${i}`;
+                                const isConfirming = confirmDeleteId === logId;
+                                const isDeleting = deletingId === logId;
+                                return (
+                                  <div key={i} className="group text-sm text-muted-foreground bg-secondary/20 hover:bg-secondary/30 rounded-lg p-3 transition-all flex items-center justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                      <span className="text-foreground font-medium text-xs block">{h.date || "—"}</span>
+                                      <div className="text-xs opacity-80 mt-0.5 truncate">{h.summary}</div>
+                                    </div>
+                                    <div className="shrink-0">
+                                      {isConfirming ? (
+                                        <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 rounded px-1.5 py-0.5">
+                                          <span className="text-[10px] text-red-400 font-semibold">Delete?</span>
+                                          <button
+                                            onClick={() => handleDeleteHabit(logId)}
+                                            disabled={isDeleting}
+                                            className="text-red-400 hover:text-red-300 p-1"
+                                            title="Confirm delete"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </button>
+                                          <button
+                                            onClick={() => setConfirmDeleteId(null)}
+                                            className="text-muted-foreground hover:text-foreground p-1"
+                                            title="Cancel"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => setConfirmDeleteId(logId)}
+                                          className="text-muted-foreground/60 hover:text-red-400 opacity-60 hover:opacity-100 p-1 rounded transition-all"
+                                          title="Delete habit entry"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })
                             : <p className="text-sm text-muted-foreground">No habit logs yet.</p>
                           }
                         </div>
@@ -308,6 +546,7 @@ const handleSaveVitals = async () => {
                     </div>
                   </div>
                 )}
+
               </div>
 
               {/* Right Column (Health Vitals Form) */}
@@ -403,6 +642,114 @@ const handleSaveVitals = async () => {
 
         </div>
       </main>
+
+      {/* Medical Report Detail & Deletion Modal */}
+      {selectedReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-fade-in">
+          <div className="glass border border-border/60 card-shadow rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 md:p-8 space-y-6 relative">
+            <button
+              onClick={() => setSelectedReport(null)}
+              className="absolute right-4 top-4 p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-secondary/40 transition-all"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-2xl gradient-bg shrink-0">
+                <FileText className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div className="flex-1 pr-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-xl md:text-2xl font-bold text-foreground">
+                    {selectedReport.condition_name || "Medical Report"}
+                  </h3>
+                  <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                    selectedReport.severity === "Mild" ? "bg-green-500/10 text-green-400 border-green-500/30"
+                    : selectedReport.severity === "Moderate" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
+                    : "bg-red-500/10 text-red-400 border-red-500/30"
+                  }`}>
+                    {selectedReport.severity || "Analysis"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Recorded: {selectedReport.timestamp ? new Date(selectedReport.timestamp).toLocaleString() : "Recent"}
+                </p>
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="bg-secondary/20 rounded-xl p-4 border border-border/40">
+              <h4 className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Summary</h4>
+              <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed">
+                {selectedReport.full_result?.brief_description || selectedReport.full_result?.report_summary || selectedReport.summary || "No additional summary provided."}
+              </p>
+            </div>
+
+            {/* Causes / Treatments / Risks if present */}
+            {selectedReport.full_result && (
+              <div className="grid md:grid-cols-3 gap-3">
+                {selectedReport.full_result.causes && (
+                  <div className="bg-secondary/20 rounded-xl p-3.5 border border-border/30">
+                    <p className="text-xs font-bold text-red-400 mb-2">Causes</p>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      {selectedReport.full_result.causes.slice(0, 3).map((c: string, idx: number) => (
+                        <li key={idx} className="truncate">• {c}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {selectedReport.full_result.treatments && (
+                  <div className="bg-secondary/20 rounded-xl p-3.5 border border-border/30">
+                    <p className="text-xs font-bold text-green-400 mb-2">Treatments</p>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      {selectedReport.full_result.treatments.slice(0, 3).map((t: string, idx: number) => (
+                        <li key={idx} className="truncate">• {t}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {selectedReport.full_result.risks && (
+                  <div className="bg-secondary/20 rounded-xl p-3.5 border border-border/30">
+                    <p className="text-xs font-bold text-yellow-400 mb-2">Risks</p>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      {selectedReport.full_result.risks.slice(0, 3).map((r: string, idx: number) => (
+                        <li key={idx} className="truncate">• {r}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Footer with Delete and Close */}
+            <div className="pt-4 border-t border-border/40 flex items-center justify-between gap-3">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  const id = selectedReport._id || selectedReport.id;
+                  handleDeleteDisease(id);
+                }}
+                disabled={deletingId === (selectedReport._id || selectedReport.id)}
+                className="rounded-full px-5 text-xs font-semibold gap-1.5"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {deletingId === (selectedReport._id || selectedReport.id) ? "Deleting..." : "Delete This Report"}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedReport(null)}
+                className="rounded-full px-5 text-xs"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <FooterSection />
     </div>
   );

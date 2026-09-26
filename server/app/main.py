@@ -21,6 +21,10 @@ except ImportError:
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
+try:
+    from bson import ObjectId
+except ImportError:
+    ObjectId = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -732,6 +736,111 @@ async def get_patient(user_id: str):
     disease_logs = [serialize(d) async for d in db.disease_logs.find({"user_id": user_id}).sort("timestamp", -1).limit(20)]
     habit_logs   = [serialize(d) async for d in db.habit_logs.find({"user_id": user_id}).sort("logged_at", -1).limit(20)]
     return {**serialize(patient), "food_logs": food_logs, "disease_logs": disease_logs, "habit_logs": habit_logs}
+
+@app.get("/user-reports/{user_id}")
+async def get_user_reports(user_id: str):
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not configured.")
+    cursor = db.disease_logs.find({"user_id": user_id}).sort("timestamp", -1)
+    reports = []
+    async for doc in cursor:
+        reports.append(serialize(doc))
+    return reports
+
+@app.delete("/disease-log/{log_id}")
+@app.delete("/report/{log_id}")
+async def delete_disease_log(log_id: str, user_id: Optional[str] = None):
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not configured.")
+    
+    # Match by ObjectId or raw string _id
+    id_filter = []
+    if ObjectId and ObjectId.is_valid(log_id):
+        id_filter.append({"_id": ObjectId(log_id)})
+    id_filter.append({"_id": log_id})
+    
+    query = {"$or": id_filter}
+    if user_id:
+        query = {"$and": [{"$or": id_filter}, {"user_id": user_id}]}
+
+    doc = await db.disease_logs.find_one(query)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Medical report not found.")
+
+    target_user_id = doc.get("user_id")
+    await db.disease_logs.delete_one({"_id": doc["_id"]})
+
+    if target_user_id:
+        patient = await db.patients.find_one({"user_id": target_user_id})
+        if patient and patient.get("disease_count", 0) > 0:
+            await db.patients.update_one(
+                {"user_id": target_user_id},
+                {"$inc": {"disease_count": -1}, "$set": {"last_active": datetime.now(timezone.utc).isoformat()}}
+            )
+
+    return {"status": "deleted", "id": log_id, "message": "Medical report deleted successfully."}
+
+@app.delete("/food-log/{log_id}")
+async def delete_food_log(log_id: str, user_id: Optional[str] = None):
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not configured.")
+
+    id_filter = []
+    if ObjectId and ObjectId.is_valid(log_id):
+        id_filter.append({"_id": ObjectId(log_id)})
+    id_filter.append({"_id": log_id})
+
+    query = {"$or": id_filter}
+    if user_id:
+        query = {"$and": [{"$or": id_filter}, {"user_id": user_id}]}
+
+    doc = await db.food_logs.find_one(query)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Food log not found.")
+
+    target_user_id = doc.get("user_id")
+    await db.food_logs.delete_one({"_id": doc["_id"]})
+
+    if target_user_id:
+        patient = await db.patients.find_one({"user_id": target_user_id})
+        if patient and patient.get("food_count", 0) > 0:
+            await db.patients.update_one(
+                {"user_id": target_user_id},
+                {"$inc": {"food_count": -1}, "$set": {"last_active": datetime.now(timezone.utc).isoformat()}}
+            )
+
+    return {"status": "deleted", "id": log_id, "message": "Food log deleted successfully."}
+
+@app.delete("/habit-log/{log_id}")
+async def delete_habit_log(log_id: str, user_id: Optional[str] = None):
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not configured.")
+
+    id_filter = []
+    if ObjectId and ObjectId.is_valid(log_id):
+        id_filter.append({"_id": ObjectId(log_id)})
+    id_filter.append({"_id": log_id})
+
+    query = {"$or": id_filter}
+    if user_id:
+        query = {"$and": [{"$or": id_filter}, {"user_id": user_id}]}
+
+    doc = await db.habit_logs.find_one(query)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Habit log not found.")
+
+    target_user_id = doc.get("user_id")
+    await db.habit_logs.delete_one({"_id": doc["_id"]})
+
+    if target_user_id:
+        patient = await db.patients.find_one({"user_id": target_user_id})
+        if patient and patient.get("habit_count", 0) > 0:
+            await db.patients.update_one(
+                {"user_id": target_user_id},
+                {"$inc": {"habit_count": -1}, "$set": {"last_active": datetime.now(timezone.utc).isoformat()}}
+            )
+
+    return {"status": "deleted", "id": log_id, "message": "Habit log deleted successfully."}
 
 # ============================================================
 # DIGITAL TWIN

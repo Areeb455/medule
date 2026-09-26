@@ -54,16 +54,66 @@ export default function Habits() {
   const [history, setHistory]       = useState<DayStats[]>([]);
 
   const lastActivityRef = useRef<number>(Date.now());
+  const lastTickRef     = useRef<number>(Date.now());
   const tickRef         = useRef<ReturnType<typeof setInterval> | null>(null);
-  const idleCheckRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const trackingRef     = useRef(false);
   const isIdleRef       = useRef(false);
 
-  // ── Load history from localStorage ──
+  // ── Load history & restore active session ──
   useEffect(() => {
     const raw = localStorage.getItem("medule_habit_history");
     if (raw) setHistory(JSON.parse(raw));
+
+    // Restore active session if user left tab or refreshed
+    const activeSessionRaw = localStorage.getItem("medule_habit_active_session");
+    if (activeSessionRaw) {
+      try {
+        const parsed = JSON.parse(activeSessionRaw);
+        if (parsed.tracking) {
+          const now = Date.now();
+          const elapsedSec = Math.max(0, Math.floor((now - (parsed.lastTick || now)) / 1000));
+          const restoredActive = (parsed.activeSeconds || 0) + elapsedSec;
+          const restoredIdle = parsed.idleSeconds || 0;
+          const restoredSessions = parsed.sessions || 1;
+
+          setActive(restoredActive);
+          setIdle(restoredIdle);
+          setSessions(restoredSessions);
+          setTracking(true);
+          trackingRef.current = true;
+          lastTickRef.current = now;
+          lastActivityRef.current = now;
+          startTick();
+        }
+      } catch {
+        localStorage.removeItem("medule_habit_active_session");
+      }
+    }
   }, []);
+
+  // Update browser tab title with live time while tracking
+  useEffect(() => {
+    if (tracking) {
+      document.title = `⏱️ ${fmt(activeSeconds)} - Habits | Medule`;
+    } else {
+      document.title = "Habits — Medule";
+    }
+  }, [tracking, activeSeconds]);
+
+  // Save session state to localStorage helper
+  const persistSession = (act: number, idl: number, sess: number) => {
+    if (!trackingRef.current) return;
+    localStorage.setItem(
+      "medule_habit_active_session",
+      JSON.stringify({
+        tracking: true,
+        lastTick: Date.now(),
+        activeSeconds: act,
+        idleSeconds: idl,
+        sessions: sess,
+      })
+    );
+  };
 
   // ── Activity detection ──
   const resetActivity = useCallback(() => {
@@ -80,31 +130,66 @@ export default function Habits() {
     return () => events.forEach(e => window.removeEventListener(e, resetActivity));
   }, [resetActivity]);
 
-  // Page visibility — pause when tab hidden
+  // Background tab catch-up — reconciles elapsed time when tab visibility changes or window regains focus
   useEffect(() => {
-    const handle = () => {
-      if (document.hidden && trackingRef.current) resetActivity();
+    const handleVisibilityCatchup = () => {
+      if (trackingRef.current) {
+        const now = Date.now();
+        const elapsedSec = Math.floor((now - lastTickRef.current) / 1000);
+        if (elapsedSec > 0) {
+          lastTickRef.current = now;
+          // While tab was hidden, count as active screen time
+          setActive(p => {
+            const next = p + elapsedSec;
+            persistSession(next, idleSeconds, sessions);
+            return next;
+          });
+        }
+        if (!document.hidden) {
+          resetActivity();
+        }
+      }
     };
-    document.addEventListener("visibilitychange", handle);
-    return () => document.removeEventListener("visibilitychange", handle);
-  }, [resetActivity]);
 
-  // ── Tick ──
+    document.addEventListener("visibilitychange", handleVisibilityCatchup);
+    window.addEventListener("focus", handleVisibilityCatchup);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityCatchup);
+      window.removeEventListener("focus", handleVisibilityCatchup);
+    };
+  }, [resetActivity, idleSeconds, sessions]);
+
+  // ── Tick (Timestamp delta calculation so background execution is 100% accurate) ──
   const startTick = () => {
+    if (tickRef.current) clearInterval(tickRef.current);
+    lastTickRef.current = Date.now();
+
     tickRef.current = setInterval(() => {
       if (!trackingRef.current) return;
-      if (document.hidden) return; // don't count hidden tab time
 
-      const idle = Date.now() - lastActivityRef.current > IDLE_THRESHOLD_MS;
+      const now = Date.now();
+      const elapsedSec = Math.max(1, Math.round((now - lastTickRef.current) / 1000));
+      lastTickRef.current = now;
+
+      // Check idle threshold (5+ min of inactivity on page)
+      const idle = !document.hidden && (now - lastActivityRef.current > IDLE_THRESHOLD_MS);
       if (idle !== isIdleRef.current) {
         isIdleRef.current = idle;
         setIsIdle(idle);
       }
 
       if (idle) {
-        setIdle(p => p + 1);
+        setIdle(p => {
+          const next = p + elapsedSec;
+          persistSession(activeSeconds, next, sessions);
+          return next;
+        });
       } else {
-        setActive(p => p + 1);
+        setActive(p => {
+          const next = p + elapsedSec;
+          persistSession(next, idleSeconds, sessions);
+          return next;
+        });
       }
     }, TICK_MS);
   };
@@ -115,18 +200,22 @@ export default function Habits() {
 
   // ── Start / Stop ──
   const startTracking = () => {
+    const newSessions = sessions + 1;
     trackingRef.current = true;
     setTracking(true);
-    setSessions(p => p + 1);
+    setSessions(newSessions);
     lastActivityRef.current = Date.now();
+    lastTickRef.current = Date.now();
+    persistSession(activeSeconds, idleSeconds, newSessions);
     startTick();
-    toast({ title: "Tracking started", description: "Your screen time is now being recorded." });
+    toast({ title: "Tracking started", description: "Your screen time is recording in the background even if you switch tabs." });
   };
 
   const stopTracking = async () => {
     trackingRef.current = false;
     setTracking(false);
     stopTick();
+    localStorage.removeItem("medule_habit_active_session");
 
     const today = todayKey();
     const entry: DayStats = {
@@ -285,7 +374,7 @@ export default function Habits() {
             <div className="mt-6 grid grid-cols-3 gap-3 text-center">
               {[
                 "5+ minutes without input = idle",
-                "Hidden browser tabs not counted",
+                "Runs in background while you switch tabs",
                 "Data auto-saves to your profile",
               ].map((tip, i) => (
                 <div key={i} className="bg-secondary/30 rounded-lg p-3">

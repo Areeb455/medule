@@ -7,7 +7,7 @@ import { usePatient } from "@/hooks/usePatient";
 import {
   Users, Search, ChevronDown, ChevronUp,
   Utensils, Stethoscope, Clock, RefreshCw,
-  Plus, Save, X,
+  Plus, Save, X, Trash2, Check, FileText,
 } from "lucide-react";
 
 export default function Patients() {
@@ -91,6 +91,60 @@ export default function Patients() {
     }
   };
 
+  // Delete log entry state & function
+  const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
+  const [confirmDeleteLogId, setConfirmDeleteLogId] = useState<string | null>(null);
+
+  const deletePatientLog = async (targetUserId: string, logId: string, category: "food" | "disease" | "habit") => {
+    if (!logId) return;
+    setDeletingLogId(logId);
+    try {
+      const headers = await authHeaders();
+      const endpoint = category === "disease" ? "disease-log" : category === "food" ? "food-log" : "habit-log";
+      const res = await fetch(`${API}/${endpoint}/${logId}?user_id=${targetUserId}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (!res.ok) throw new Error(`Failed to delete ${category} log`);
+
+      toast({
+        title: "Deleted",
+        description: `${category === "disease" ? "Medical report" : category} entry removed from patient record.`,
+      });
+      setConfirmDeleteLogId(null);
+
+      // Update detail state
+      setDetail(prev => {
+        const pDetail = prev[targetUserId];
+        if (!pDetail) return prev;
+        const key = category === "disease" ? "disease_logs" : category === "food" ? "food_logs" : "habit_logs";
+        return {
+          ...prev,
+          [targetUserId]: {
+            ...pDetail,
+            [key]: (pDetail[key] || []).filter((l: any) => (l._id || l.id) !== logId),
+          },
+        };
+      });
+
+      // Update patient stats in patients array
+      setPatients(prev =>
+        prev.map(p => {
+          if (p.user_id !== targetUserId) return p;
+          const countKey = `${category}_count`;
+          return {
+            ...p,
+            [countKey]: Math.max(0, (p[countKey] || 1) - 1),
+          };
+        })
+      );
+    } catch (err: any) {
+      toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setDeletingLogId(null);
+    }
+  };
+
   useEffect(() => { if (userId) fetchPatients(); }, [userId]);
 
   const filtered = patients.filter(p =>
@@ -111,7 +165,7 @@ export default function Patients() {
                 Patient <span className="gradient-text">Management</span>
               </h1>
               <p className="text-muted-foreground">
-                All patient records — auto-populated from feature usage. Add manual entries anytime.
+                All patient records — auto-populated from feature usage. Add manual entries or manage records anytime.
               </p>
             </div>
             <Button onClick={fetchPatients} disabled={loading} className="gradient-bg rounded-full px-6">
@@ -257,22 +311,62 @@ export default function Patients() {
                             {/* Recent logs */}
                             <div className="grid md:grid-cols-3 gap-3">
                               {[
-                                { title: "Food", logs: d.food_logs, color: "text-green-400", key: (l: any) => l.food_name || l.summary },
-                                { title: "Disease", logs: d.disease_logs, color: "text-red-400", key: (l: any) => l.condition_name || l.summary },
-                                { title: "Habits", logs: d.habit_logs, color: "text-purple-400", key: (l: any) => l.summary },
+                                { title: "Food Logs", logs: d.food_logs, color: "text-green-400", category: "food" as const, key: (l: any) => l.food_name || l.summary },
+                                { title: "Medical Reports", logs: d.disease_logs, color: "text-red-400", category: "disease" as const, key: (l: any) => l.condition_name || l.summary },
+                                { title: "Habit Logs", logs: d.habit_logs, color: "text-purple-400", category: "habit" as const, key: (l: any) => l.summary },
                               ].map((section) => (
-                                <div key={section.title}>
-                                  <p className={`text-xs font-semibold mb-2 ${section.color}`}>{section.title}</p>
+                                <div key={section.title} className="bg-secondary/15 rounded-xl p-3 border border-border/30">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <p className={`text-xs font-semibold ${section.color}`}>{section.title}</p>
+                                    <span className="text-[10px] text-muted-foreground">{section.logs?.length || 0} entries</span>
+                                  </div>
                                   {section.logs?.length > 0 ? (
-                                    <div className="space-y-1">
-                                      {section.logs.slice(0, 4).map((l: any, i: number) => (
-                                        <div key={i} className="text-xs text-muted-foreground bg-secondary/20 rounded px-2 py-1.5 truncate">
-                                          {section.key(l)}
-                                        </div>
-                                      ))}
+                                    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                                      {section.logs.slice(0, 8).map((l: any, i: number) => {
+                                        const logId = l._id || l.id || `${section.category}-${i}`;
+                                        const isConfirming = confirmDeleteLogId === logId;
+                                        const isDeleting = deletingLogId === logId;
+
+                                        return (
+                                          <div key={i} className="group text-xs text-muted-foreground bg-secondary/30 hover:bg-secondary/50 rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-1.5 transition-all">
+                                            <span className="truncate flex-1 text-foreground/90" title={section.key(l)}>
+                                              {section.key(l)}
+                                            </span>
+                                            
+                                            {isConfirming ? (
+                                              <div className="flex items-center gap-1 bg-red-500/20 border border-red-500/40 rounded px-1 py-0.5 shrink-0">
+                                                <span className="text-[9px] text-red-400 font-bold">Delete?</span>
+                                                <button
+                                                  onClick={() => deletePatientLog(uid, logId, section.category)}
+                                                  disabled={isDeleting}
+                                                  className="text-red-400 hover:text-red-300 font-bold px-0.5"
+                                                  title="Confirm delete"
+                                                >
+                                                  {isDeleting ? "..." : "Yes"}
+                                                </button>
+                                                <button
+                                                  onClick={() => setConfirmDeleteLogId(null)}
+                                                  className="text-muted-foreground hover:text-foreground px-0.5"
+                                                  title="Cancel"
+                                                >
+                                                  <X className="h-2.5 w-2.5" />
+                                                </button>
+                                              </div>
+                                            ) : (
+                                              <button
+                                                onClick={() => setConfirmDeleteLogId(logId)}
+                                                className="text-muted-foreground/50 hover:text-red-400 p-0.5 rounded opacity-50 group-hover:opacity-100 transition-all shrink-0"
+                                                title={`Delete this ${section.category === "disease" ? "report" : "entry"}`}
+                                              >
+                                                <Trash2 className="h-3 w-3" />
+                                              </button>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   ) : (
-                                    <p className="text-xs text-muted-foreground">No logs</p>
+                                    <p className="text-xs text-muted-foreground py-2 text-center">No logs</p>
                                   )}
                                 </div>
                               ))}

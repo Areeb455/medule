@@ -40,8 +40,10 @@ UPLOAD_DIR         = "/tmp/medule_uploads"
 MONGODB_URI        = os.getenv("MONGODB_URI", "")
 
 # ─── Payment Gateway Config (Razorpay - Cards, UPI, Net Banking) ────
-RAZORPAY_KEY_ID     = os.getenv("RAZORPAY_KEY_ID", "")
+RAZORPAY_KEY_ID     = os.getenv("RAZORPAY_KEY_ID", "rzp_live_TfAeEA00FwBUJZ")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
+RAZORPAY_ME_URL     = "https://razorpay.me/@stickanddotmediaandtechnology"
+MERCHANT_NAME       = "STICK AND DOT MEDIA AND TECHNOLOGY PRIVATE LIMITED"
 MAX_PRICE_USD       = 10.00
 MAX_PRICE_INR       = 850.00
 
@@ -1229,7 +1231,9 @@ async def create_payment_order(input: CreateOrderInput):
         "order_id": internal_order_id,
         "amount": amount,
         "currency": currency,
-        "key_id": RAZORPAY_KEY_ID or "rzp_test_medule",
+        "key_id": RAZORPAY_KEY_ID or "rzp_live_TfAeEA00FwBUJZ",
+        "razorpay_me_url": RAZORPAY_ME_URL,
+        "merchant_name": MERCHANT_NAME,
         "cap_enforced": True,
         "max_cap_usd": MAX_PRICE_USD,
         "status": "created"

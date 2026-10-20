@@ -168,12 +168,12 @@ export default function PricingModal() {
                 <ArrowRight className="h-4 w-4" />
               </button>
 
-              <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Lock className="h-3 w-3 text-emerald-500" /> Razorpay Secured
-                </span>
-                <span>•</span>
-                <span>Instant 30-Day Money Back</span>
+              <div className="flex flex-col items-center justify-center gap-1 text-[10px] text-muted-foreground text-center">
+                <div className="flex items-center gap-1 font-medium text-foreground">
+                  <Lock className="h-3 w-3 text-emerald-500" />
+                  <span>Razorpay Verified: STICK AND DOT MEDIA AND TECHNOLOGY PRIVATE LIMITED</span>
+                </div>
+                <span>Direct UPI, Cards & Net Banking • 100% Money-Back Guarantee</span>
               </div>
             </div>
           </div>

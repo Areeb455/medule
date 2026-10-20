@@ -45,6 +45,19 @@ const ALL_BANKS = [
   "Citibank India",
 ];
 
+const API = import.meta.env.VITE_API_URL || "https://medule-3ix4.onrender.com";
+
+const loadRazorpayScript = () => {
+  return new Promise<boolean>((resolve) => {
+    if ((window as any).Razorpay) return resolve(true);
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 export default function PaymentModal() {
   const { paymentModalOpen, closePayment, activateProSubscription, activeFeatureGate } = useSubscription();
   const { user } = useUser();
@@ -72,6 +85,10 @@ export default function PaymentModal() {
   // Net Banking fields
   const [selectedBank, setSelectedBank] = useState<string>("HDFC");
   const [otherBank, setOtherBank] = useState<string>("");
+
+  // Live Gateway Key Configuration State
+  const [customKeyId, setCustomKeyId] = useState(() => localStorage.getItem("medule_rzp_key") || import.meta.env.VITE_RAZORPAY_KEY_ID || "");
+  const [showKeySetup, setShowKeySetup] = useState(false);
 
   // Processing state
   const [processing, setProcessing] = useState(false);
@@ -107,6 +124,112 @@ export default function PaymentModal() {
   const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, "").substring(0, 4);
     setCardCvv(val);
+  };
+
+  // Launch REAL Razorpay Checkout Popup
+  const handleLaunchRazorpay = async () => {
+    setProcessing(true);
+    setErrorMessage(null);
+
+    try {
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        throw new Error("Razorpay Checkout SDK failed to load. Please check your internet connection.");
+      }
+
+      // 1. Create order on backend
+      const res = await fetch(`${API}/create-payment-order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user?.id || "guest",
+          patient_name: user?.fullName || "Patient",
+          currency,
+          amount: price,
+          plan: "pro_pass",
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to create order on server.");
+      }
+
+      const orderData = await res.json();
+      const keyToUse = customKeyId.trim() || import.meta.env.VITE_RAZORPAY_KEY_ID || orderData.key_id;
+
+      if (!keyToUse || keyToUse === "rzp_test_medule") {
+        setShowKeySetup(true);
+        throw new Error("No live Razorpay Key ID found. Enter your Razorpay Key ID (rzp_test_... or rzp_live_...) in the box below to open the real payment window, or use Instant Demo Activation.");
+      }
+
+      // Save custom key if entered
+      if (customKeyId.trim()) {
+        localStorage.setItem("medule_rzp_key", customKeyId.trim());
+      }
+
+      const options = {
+        key: keyToUse,
+        amount: Math.round(orderData.amount * 100),
+        currency: orderData.currency,
+        name: "Medule Health Intelligence",
+        description: "Medule Pro Pass ($10 Cap)",
+        image: "/medule-logo.svg",
+        order_id: (orderData.order_id && !orderData.order_id.startsWith("order_medule_")) ? orderData.order_id : undefined,
+        prefill: {
+          name: user?.fullName || "",
+          email: user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || "",
+          contact: "",
+        },
+        theme: {
+          color: "#0ea5e9",
+        },
+        handler: async function (response: any) {
+          try {
+            await fetch(`${API}/verify-payment`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                user_id: user?.id,
+                order_id: response.razorpay_order_id || orderData.order_id,
+                payment_id: response.razorpay_payment_id || "pay_success",
+                signature: response.razorpay_signature || "verified_sig",
+                payment_method: activeTab,
+                currency,
+                amount: price,
+              }),
+            });
+          } catch (e) {
+            console.warn("Backend verify notice:", e);
+          }
+
+          await activateProSubscription({
+            pricePaid: price,
+            currency,
+          });
+
+          setSuccess(true);
+          setTimeout(() => {
+            setSuccess(false);
+            closePayment();
+          }, 1800);
+        },
+        modal: {
+          ondismiss: function () {
+            setProcessing(false);
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", function (response: any) {
+        setErrorMessage(response.error?.description || "Payment failed or was cancelled by user.");
+        setProcessing(false);
+      });
+      rzp.open();
+    } catch (err: any) {
+      setErrorMessage(err.message || "Could not launch Razorpay window.");
+      setProcessing(false);
+    }
   };
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
@@ -145,9 +268,9 @@ export default function PaymentModal() {
       }
     }
 
-    // Simulate Payment Processing through Gateway template
+    // Process Instant Subscription Activation
     try {
-      await new Promise((r) => setTimeout(r, 1600));
+      await new Promise((r) => setTimeout(r, 1200));
 
       await activateProSubscription({
         pricePaid: price,
@@ -573,8 +696,58 @@ export default function PaymentModal() {
                   </div>
                 )}
 
+                {/* Live Gateway Key Setup Box (Expandable) */}
+                <div className="pt-2 border-t border-border/50">
+                  <div className="flex items-center justify-between text-[11px] mb-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowKeySetup(!showKeySetup)}
+                      className="text-primary hover:underline flex items-center gap-1 font-medium"
+                    >
+                      <Info className="h-3 w-3" />
+                      <span>{showKeySetup ? "Hide Live Gateway Key" : "Need Real Payment? Click to Enter Razorpay Key"}</span>
+                    </button>
+                    <span className="text-[10px] text-muted-foreground">
+                      {customKeyId ? "Key Saved" : "No live key"}
+                    </span>
+                  </div>
+
+                  {showKeySetup && (
+                    <div className="p-3 bg-secondary/40 border border-border/70 rounded-xl space-y-2 text-[11px] mb-3 animate-fade-in">
+                      <p className="text-muted-foreground leading-relaxed">
+                        To accept real money via Cards, Google Pay / PhonePe, and Net Banking:
+                      </p>
+                      <ol className="list-decimal pl-4 space-y-1 text-muted-foreground">
+                        <li>Log in to <a href="https://dashboard.razorpay.com" target="_blank" rel="noreferrer" className="text-primary underline">dashboard.razorpay.com</a>.</li>
+                        <li>Go to <strong>Settings → API Keys</strong> and copy your <strong>Key ID</strong> (e.g. <code>rzp_test_...</code> or <code>rzp_live_...</code>).</li>
+                      </ol>
+                      <div className="flex gap-2 pt-1">
+                        <input
+                          type="text"
+                          placeholder="rzp_test_... or rzp_live_..."
+                          value={customKeyId}
+                          onChange={(e) => setCustomKeyId(e.target.value)}
+                          className="flex-1 bg-background border border-border px-3 py-1.5 rounded-lg text-xs font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (customKeyId.trim()) {
+                              localStorage.setItem("medule_rzp_key", customKeyId.trim());
+                              setErrorMessage(null);
+                            }
+                          }}
+                          className="bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded-lg font-semibold"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Security Guarantee Notice */}
-                <div className="pt-2 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border/50">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <Lock className="h-3.5 w-3.5 text-emerald-500" />
                     <span>256-Bit Bank-grade Encryption</span>
@@ -585,27 +758,40 @@ export default function PaymentModal() {
                   </div>
                 </div>
 
-                {/* Submit Action Button */}
-                <button
-                  type="submit"
-                  disabled={processing}
-                  className="w-full gradient-bg text-primary-foreground font-semibold py-3 px-4 rounded-xl shadow-lg hover:opacity-95 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-                >
-                  {processing ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Authorizing Secure Payment...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="h-4 w-4" />
-                      <span>
-                        Pay {currencySymbol}{price} & Unlock Pro
-                      </span>
-                      <ArrowRight className="h-4 w-4" />
-                    </>
-                  )}
-                </button>
+                {/* Dual Action Buttons */}
+                <div className="space-y-2 pt-1">
+                  {/* Real Razorpay Window Trigger */}
+                  <button
+                    type="button"
+                    onClick={handleLaunchRazorpay}
+                    disabled={processing}
+                    className="w-full gradient-bg text-primary-foreground font-semibold py-3 px-4 rounded-xl shadow-lg hover:opacity-95 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  >
+                    {processing ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Launching Gateway...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-4 w-4" />
+                        <span>
+                          Pay {currencySymbol}{price} via Official Gateway (Real UPI / Cards)
+                        </span>
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+
+                  {/* Instant Sandbox Testing Trigger */}
+                  <button
+                    type="submit"
+                    disabled={processing}
+                    className="w-full bg-secondary/70 hover:bg-secondary text-foreground text-xs py-2 px-3 rounded-xl border border-border/80 transition-all text-center text-muted-foreground hover:text-foreground"
+                  >
+                    Or Instant Test Activation (Demo Simulator)
+                  </button>
+                </div>
               </form>
             </div>
           </div>

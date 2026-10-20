@@ -4,8 +4,8 @@ import Navbar from "@/components/Navbar";
 import FooterSection from "@/components/FooterSection";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { usePatient } from "@/hooks/usePatient";
-import { FileText, RotateCcw, AlertTriangle, Sparkles, ArrowRight } from "lucide-react";
+import { FileText, RotateCcw, AlertTriangle, Sparkles, ArrowRight, Lock, Database } from "lucide-react";
+import { useSubscription } from "@/hooks/useSubscription";
 
 function ReportResult({ result, onReset }: { result: any; onReset: () => void }) {
   return (
@@ -129,6 +129,7 @@ function UploadBox({ onFile, loading }: { onFile: (f: File) => void; loading: bo
 export default function MedicalReport() {
   const { toast } = useToast();
   const { buildFormData, API } = usePatient();
+  const { hasFeature, openPayment } = useSubscription();
 
   const [loading, setLoading] = useState(false);
   const [result,  setResult]  = useState<any>(null);
@@ -175,7 +176,27 @@ export default function MedicalReport() {
             </div>
 
             {result ? (
-              <ReportResult result={result} onReset={() => setResult(null)} />
+              <div className="space-y-4">
+                <ReportResult result={result} onReset={() => setResult(null)} />
+                {!hasFeature("save_data") && (
+                  <div className="p-4 rounded-xl border border-primary/40 bg-primary/5 flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-2.5">
+                      <Database className="h-5 w-5 text-primary" />
+                      <div className="text-xs">
+                        <span className="font-semibold text-foreground">Save Report to Cloud: </span>
+                        <span className="text-muted-foreground">Permanent storage in your Digital Twin requires Medule Pro ($9.99 max).</span>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => openPayment("Saving Medical Reports")}
+                      className="gradient-bg text-xs rounded-full px-4"
+                    >
+                      <Lock className="h-3 w-3 mr-1.5" /> Unlock Saving ($9.99)
+                    </Button>
+                  </div>
+                )}
+              </div>
             ) : (
               <UploadBox onFile={handleUpload} loading={loading} />
             )}

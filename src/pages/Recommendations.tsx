@@ -12,8 +12,9 @@ import {
   Sparkles, Leaf, Compass, ArrowRight, ShieldAlert,
   ClipboardList, CheckCircle2, Stethoscope, PlusCircle,
   ExternalLink, ShoppingCart, Tag, Smartphone, Utensils,
-  Clock, ShieldCheck, Info
+  Clock, ShieldCheck, Info, Lock
 } from "lucide-react";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface RecItem {
   name: string;
@@ -88,6 +89,7 @@ const categoryIcon = (cat: string) => {
 export default function Recommendations() {
   const { userId, authHeaders, API } = usePatient();
   const { toast } = useToast();
+  const { hasFeature, openPayment } = useSubscription();
 
   const [data, setData] = useState<RecommendationsData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -184,6 +186,34 @@ export default function Recommendations() {
               </p>
             </div>
           </div>
+
+          {/* Pro Paywall / Feature Gate Banner */}
+          {!hasFeature("recommendations") && (
+            <div className="glass border-2 border-primary/50 rounded-2xl p-6 relative overflow-hidden bg-gradient-to-r from-primary/10 via-background to-secondary/40 shadow-xl animate-fade-in-up">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="space-y-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
+                    <Sparkles className="h-3.5 w-3.5" /> Pro Intelligence Locked • $10 Price Cap
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold text-foreground">
+                    Unlock 360° AI Clinical Recommendations
+                  </h3>
+                  <p className="text-xs md:text-sm text-muted-foreground max-w-2xl leading-relaxed">
+                    Access individualized OTC remedies, clinical therapeutic guidance, branded supplement regimens, and medical device suggestions synthesized from your complete Digital Twin profile.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full md:w-auto">
+                  <Button
+                    onClick={() => openPayment("Clinical AI Recommendations")}
+                    className="gradient-bg text-primary-foreground font-semibold rounded-xl text-xs px-6 py-3 shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <Lock className="h-4 w-4" />
+                    <span>Unlock for $9.99 (Cards / UPI / NetBanking)</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Loading State */}
           {loading && (

@@ -5,10 +5,11 @@ import FooterSection from "@/components/FooterSection";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { usePatient } from "@/hooks/usePatient";
+import { useSubscription } from "@/hooks/useSubscription";
 import {
   Brain, Heart, Activity, Clock, Utensils, 
   Stethoscope, RefreshCw, TrendingUp, AlertCircle, User,
-  Trash2, Eye, X, FileText, AlertTriangle,
+  Trash2, Eye, X, FileText, AlertTriangle, Sparkles, Lock, Shield,
 } from "lucide-react";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const { user } = useUser();
   const { userId, patientName, authHeaders, API } = usePatient();
   const { toast } = useToast();
+  const { hasFeature, openPricing, openPayment, subscription } = useSubscription();
 
   const [data, setData]       = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -42,12 +44,19 @@ export default function Dashboard() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [vitals, setVitals] = useState<any>({ age: "", height_cm: "", weight_kg: "", gender: "" });
-const [vitalsSaving, setVitalsSaving] = useState(false);
+  const [vitalsSaving, setVitalsSaving] = useState(false);
 
-const handleSaveVitals = async () => {
-  if (!userId) return;
-  setVitalsSaving(true);
-  try {
+  const handleSaveVitals = async () => {
+    if (!userId) return;
+
+    // Feature Gate: Saving Data to Cloud
+    if (!hasFeature("save_data")) {
+      openPricing("Saving Biometric Vitals to Cloud");
+      return;
+    }
+
+    setVitalsSaving(true);
+    try {
     const headers = await authHeaders();
     const bmi = vitals.height_cm && vitals.weight_kg
       ? parseFloat((parseFloat(vitals.weight_kg) / Math.pow(parseFloat(vitals.height_cm) / 100, 2)).toFixed(1))
@@ -218,7 +227,7 @@ const handleSaveVitals = async () => {
         <div className="container mx-auto px-4 sm:px-6 max-w-6xl w-full">
 
           {/* Header */}
-          <div className="mb-8 sm:mb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
+          <div className="mb-6 sm:mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
                 Digital <span className="gradient-text">Twin</span>
@@ -232,6 +241,35 @@ const handleSaveVitals = async () => {
               Refresh Profile
             </Button>
           </div>
+
+          {/* Feature Gate Banner: Digital Twin & Cloud Data */}
+          {!hasFeature("digital_twin") && (
+            <div className="mb-8 p-5 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/10 via-background to-secondary/30 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in-up">
+              <div className="flex items-start gap-3.5">
+                <div className="p-2.5 bg-primary/20 rounded-xl text-primary shrink-0 mt-0.5">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-foreground text-base">Digital Twin Pro Intelligence</h3>
+                    <span className="bg-primary/20 text-primary text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">
+                      Price Capped at $10 Max
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xl leading-relaxed">
+                    Unlock permanent multi-stream biometrics synchronization, cloud history archival, and personalized Clinical AI recommendations.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => openPayment("Digital Twin 360° Access")}
+                className="gradient-bg text-primary-foreground font-semibold rounded-xl text-xs px-5 py-2.5 shadow shrink-0 flex items-center gap-1.5"
+              >
+                <Lock className="h-3.5 w-3.5" />
+                <span>Unlock Pro ($9.99)</span>
+              </Button>
+            </div>
+          )}
 
           {loading && (
             <div className="text-center py-20">
@@ -649,9 +687,14 @@ const handleSaveVitals = async () => {
                     <Button
                       onClick={handleSaveVitals}
                       disabled={vitalsSaving}
-                      className="w-full gradient-bg rounded-xl py-2.5 mt-2 text-sm font-semibold"
+                      className="w-full gradient-bg rounded-xl py-2.5 mt-2 text-sm font-semibold flex items-center justify-center gap-1.5"
                     >
-                      {vitalsSaving ? "Saving..." : "Save Vitals"}
+                      {!hasFeature("save_data") && <Lock className="h-3.5 w-3.5 text-amber-300" />}
+                      {vitalsSaving
+                        ? "Saving..."
+                        : hasFeature("save_data")
+                        ? "Save Vitals"
+                        : "Save Vitals (Pro $9.99)"}
                     </Button>
                   </div>
                 </div>

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/clerk-react";
-import { Menu, X, Activity, Smartphone } from "lucide-react";
+import { Menu, X, Activity, Smartphone, Sparkles, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LanguageTranslator from "@/components/LanguageTranslator";
 import WebAppConversionModal from "@/components/WebAppConversionModal";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const ALLOWED_EMAILS = [
   "yusufusmani910@gmail.com",
@@ -21,6 +22,7 @@ export default function Navbar() {
 
   const userEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
   const isAllowed = ALLOWED_EMAILS.includes(userEmail);
+  const { subscription, openPricing } = useSubscription();
 
   const NAV_LINKS = [
     { href: "/medical-report",  label: "Medical Report" },
@@ -59,8 +61,27 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Language Translator, Web App CTA & Auth */}
+          {/* Language Translator, Pro Pass CTA, Web App CTA & Auth */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Pro Status or Upgrade Button */}
+            {subscription.isSubscribed ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span>Pro Member</span>
+              </span>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openPricing()}
+                className="flex items-center gap-1.5 rounded-full text-xs font-semibold border-amber-500/40 hover:border-amber-500 text-amber-500 bg-amber-500/5 hover:bg-amber-500/10 shadow-sm"
+                title="Unlock Cloud Data Saving, Digital Twin & AI Recommendations for $9.99"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Pro ($9.99)</span>
+              </Button>
+            )}
+
             {/* Web App Conversion Button */}
             <Button
               variant="outline"

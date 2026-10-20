@@ -10,6 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import Recommendations from "./pages/Recommendations";
 import Patients from "./pages/Patients";
 import SignInPage from "./pages/SignInPage";
+import { SubscriptionProvider } from "./hooks/useSubscription";
+import PaymentModal from "./components/payment/PaymentModal";
+import PricingModal from "./components/payment/PricingModal";
 
 class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
   constructor(props: any) {
@@ -78,30 +81,35 @@ function PatientsPageAccess() {
 
   return <Patients />;
 }
+ 
 const App = () => (
   <ErrorBoundary>
-    <BrowserRouter>
-      <Routes>
-        {/* Public */}
-        <Route path="/" element={<Index />} />
-        <Route path="/sign-in" element={<SignInPage />} />
+    <SubscriptionProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<Index />} />
+          <Route path="/sign-in" element={<SignInPage />} />
 
-        {/* Protected */}
-        <Route path="/medical-report" element={<ProtectedRoute><MedicalReport /></ProtectedRoute>} />
-        <Route path="/analyze" element={<ProtectedRoute><Analyze /></ProtectedRoute>} />
-        <Route path="/diagnose" element={<ProtectedRoute><Diagnose /></ProtectedRoute>} />
-        <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
-        <Route path="/patients" element={
-          <ProtectedRoute>
-            <PatientsPageAccess />
-          </ProtectedRoute>
-        } />
+          {/* Protected */}
+          <Route path="/medical-report" element={<ProtectedRoute><MedicalReport /></ProtectedRoute>} />
+          <Route path="/analyze" element={<ProtectedRoute><Analyze /></ProtectedRoute>} />
+          <Route path="/diagnose" element={<ProtectedRoute><Diagnose /></ProtectedRoute>} />
+          <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
+          <Route path="/patients" element={
+            <ProtectedRoute>
+              <PatientsPageAccess />
+            </ProtectedRoute>
+          } />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <PaymentModal />
+        <PricingModal />
+      </BrowserRouter>
+    </SubscriptionProvider>
   </ErrorBoundary>
 );
 

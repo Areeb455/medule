@@ -17,6 +17,11 @@ export function usePatient() {
     user?.emailAddresses?.[0]?.emailAddress?.split("@")[0] ||
     "Patient";
 
+  const userEmail =
+    user?.primaryEmailAddress?.emailAddress ||
+    user?.emailAddresses?.[0]?.emailAddress ||
+    "";
+
   async function authHeaders(): Promise<HeadersInit> {
     const token = await getToken();
     return {
@@ -36,6 +41,10 @@ export function usePatient() {
       console.warn("❌ userId is null — Clerk not loaded or not signed in");
     }
 
+    if (userEmail) {
+      fd.append("user_email", userEmail);
+    }
+
     fd.append("patient_name", patientName);
 
     // Log all FormData entries for debugging
@@ -46,5 +55,5 @@ export function usePatient() {
     return fd;
   }
 
-  return { userId, patientName, authHeaders, buildFormData, API };
+  return { userId, patientName, userEmail, authHeaders, buildFormData, API };
 }

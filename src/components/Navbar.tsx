@@ -9,6 +9,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 
 const ALLOWED_EMAILS = [
   "yusufusmani910@gmail.com",
+  "usmaniyusuf69@gmail.com",
   "areebimam466@gmail.com",
   "omsh0401@gmail.com",
   "areebimam455@gmail.com"
@@ -20,8 +21,14 @@ export default function Navbar() {
   const { pathname } = useLocation();
   const { user } = useUser();
 
-  const userEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
-  const isAllowed = ALLOWED_EMAILS.includes(userEmail);
+  const userEmails = [
+    user?.primaryEmailAddress?.emailAddress,
+    ...(user?.emailAddresses?.map((e) => e.emailAddress) || []),
+  ]
+    .filter(Boolean)
+    .map((e) => (e as string).toLowerCase().trim());
+
+  const isAllowed = userEmails.some((email) => ALLOWED_EMAILS.includes(email));
   const { subscription, openPricing } = useSubscription();
 
   const NAV_LINKS = [

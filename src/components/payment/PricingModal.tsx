@@ -15,9 +15,9 @@ import {
 import { useSubscription } from "@/hooks/useSubscription";
 
 export default function PricingModal() {
-  const { pricingModalOpen, closePricing, openPayment, activeFeatureGate } = useSubscription();
+  const { pricingModalOpen, closePricing, openPayment, activeFeatureGate, isExempt, subscription } = useSubscription();
 
-  if (!pricingModalOpen) return null;
+  if (!pricingModalOpen || isExempt || subscription.isSubscribed) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-200">
@@ -164,7 +164,7 @@ export default function PricingModal() {
                 onClick={() => openPayment(activeFeatureGate || "Pro Access")}
                 className="w-full gradient-bg text-primary-foreground font-semibold py-2.5 px-4 rounded-xl shadow-md hover:opacity-95 transition-all flex items-center justify-center gap-2 text-xs"
               >
-                <span>Pay $9.99 via Cards, UPI, or Net Banking</span>
+                <span>Proceed to Razorpay Checkout ($9.99 / ₹799)</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
 
@@ -173,7 +173,7 @@ export default function PricingModal() {
                   <Lock className="h-3 w-3 text-emerald-500" />
                   <span>Razorpay Verified: STICK AND DOT MEDIA AND TECHNOLOGY PRIVATE LIMITED</span>
                 </div>
-                <span>Direct UPI, Cards & Net Banking • 100% Money-Back Guarantee</span>
+                <span>Official Razorpay Payment Portal • Instant Pro Unlock</span>
               </div>
             </div>
           </div>

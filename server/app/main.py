@@ -47,6 +47,13 @@ MERCHANT_NAME       = "STICK AND DOT MEDIA AND TECHNOLOGY PRIVATE LIMITED"
 MAX_PRICE_USD       = 10.00
 MAX_PRICE_INR       = 850.00
 
+# ─── Exempt Emails (Complimentary Free Pro Access) ────────────────────
+EXEMPT_FREE_EMAILS = {
+    "yusufusmani910@gmail.com",
+    "usmaniyusuf69@gmail.com",
+    "areebimam466@gmail.com",
+}
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # ─── MongoDB globals ──────────────────────────────────────
@@ -138,19 +145,42 @@ def clean_json(text: str) -> str:
         return text[first_brace:last_brace + 1].strip()
     return text
 
-async def upsert_patient(user_id: str, patient_name: str):
+async def upsert_patient(user_id: str, patient_name: str, email: Optional[str] = None):
+    now_iso = datetime.now(timezone.utc).isoformat()
+    set_fields = {
+        "patient_name": patient_name,
+        "last_active":  now_iso,
+    }
+    if email:
+        clean_email = email.lower().strip()
+        set_fields["email"] = clean_email
+        if clean_email in EXEMPT_FREE_EMAILS:
+            set_fields["is_premium"] = True
+            set_fields["plan"] = "pro_pass"
+            set_fields["subscription"] = {
+                "status": "active",
+                "plan": "pro_pass",
+                "price_paid": 0.0,
+                "currency": "USD",
+                "payment_method": "exempt_grant",
+                "order_id": "exempt_free_access",
+                "payment_id": "pay_exempt_free",
+                "activated_at": now_iso,
+                "features": ["save_data", "digital_twin", "recommendations"]
+            }
+
     await db.patients.update_one(
         {"user_id": user_id},
         {"$setOnInsert": {
             "user_id":      user_id,
             "patient_name": patient_name,
-            "created_at":   datetime.now(timezone.utc).isoformat(),
+            "created_at":   now_iso,
         }},
         upsert=True,
     )
     await db.patients.update_one(
         {"user_id": user_id},
-        {"$set": {"patient_name": patient_name, "last_active": datetime.now(timezone.utc).isoformat()}}
+        {"$set": set_fields}
     )
 
 AVAILABLE_GEMINI_MODELS = []
@@ -491,6 +521,7 @@ async def analyze_food(
     image: UploadFile = File(...),
     user_id:      Optional[str] = Form(None),
     patient_name: Optional[str] = Form(None),
+    user_email:   Optional[str] = Form(None),
 ):
     allowed = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
     if image.content_type not in allowed and not image.filename.lower().endswith(".pdf"):
@@ -518,7 +549,7 @@ async def analyze_food(
         result = json.loads(clean_json(raw))
 
         if db is not None and user_id and patient_name:
-            await upsert_patient(user_id, patient_name)
+            await upsert_patient(user_id, patient_name, email=user_email)
             await db.food_logs.insert_one({
                 "user_id":      user_id,
                 "patient_name": patient_name,
@@ -606,6 +637,7 @@ async def analyze_disease(
     image: UploadFile = File(...),
     user_id:      Optional[str] = Form(None),
     patient_name: Optional[str] = Form(None),
+    user_email:   Optional[str] = Form(None),
 ):
     allowed = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
     if image.content_type not in allowed and not image.filename.lower().endswith(".pdf"):
@@ -633,7 +665,7 @@ async def analyze_disease(
         result = json.loads(clean_json(raw))
 
         if db is not None and user_id and patient_name:
-            await upsert_patient(user_id, patient_name)
+            await upsert_patient(user_id, patient_name, email=user_email)
             await db.disease_logs.insert_one({
                 "user_id":        user_id,
                 "patient_name":   patient_name,
@@ -1292,14 +1324,68 @@ async def verify_payment(input: VerifyPaymentInput):
     }
 
 @app.get("/subscription-status/{user_id}")
-async def get_subscription_status(user_id: str):
+async def get_subscription_status(user_id: str, email: Optional[str] = None):
     """
     Returns the user's subscription tier and unlocked features.
+    Exempt email addresses receive full Medule Pro entitlements for free.
     """
+    clean_email = email.lower().strip() if email else None
+    is_exempt = clean_email in EXEMPT_FREE_EMAILS if clean_email else False
+
     if db is None:
+        if is_exempt:
+            return {
+                "user_id": user_id,
+                "is_premium": True,
+                "plan": "pro_pass",
+                "price_paid": 0.0,
+                "currency": "USD",
+                "features": ["save_data", "digital_twin", "recommendations"],
+                "exempt": True
+            }
         return {"is_premium": False, "plan": "free", "features": []}
 
     patient = await db.patients.find_one({"user_id": user_id})
+    if patient and not is_exempt:
+        patient_email = (patient.get("email") or "").lower().strip()
+        if patient_email in EXEMPT_FREE_EMAILS:
+            is_exempt = True
+
+    if is_exempt:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        sub_data = {
+            "status": "active",
+            "plan": "pro_pass",
+            "price_paid": 0.0,
+            "currency": "USD",
+            "payment_method": "exempt_grant",
+            "order_id": "exempt_free_access",
+            "payment_id": "pay_exempt_free",
+            "activated_at": now_iso,
+            "features": ["save_data", "digital_twin", "recommendations"]
+        }
+        await db.patients.update_one(
+            {"user_id": user_id},
+            {"$set": {
+                "is_premium": True,
+                "plan": "pro_pass",
+                "subscription": sub_data,
+                **({"email": clean_email} if clean_email else {}),
+                "last_active": now_iso
+            }},
+            upsert=True
+        )
+        return {
+            "user_id": user_id,
+            "is_premium": True,
+            "plan": "pro_pass",
+            "price_paid": 0.0,
+            "currency": "USD",
+            "activated_at": now_iso,
+            "features": ["save_data", "digital_twin", "recommendations"],
+            "exempt": True
+        }
+
     if not patient or not patient.get("is_premium"):
         return {
             "user_id": user_id,

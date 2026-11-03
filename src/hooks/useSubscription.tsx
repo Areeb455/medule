@@ -1,5 +1,11 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode, useMemo } from "react";
 import { useUser } from "@clerk/clerk-react";
+
+export const EXEMPT_FREE_EMAILS = [
+  "yusufusmani910@gmail.com",
+  "usmaniyusuf69@gmail.com",
+  "areebimam466@gmail.com",
+];
 
 export interface SubscriptionStatus {
   isSubscribed: boolean;
@@ -8,6 +14,7 @@ export interface SubscriptionStatus {
   currency?: string;
   activatedAt?: string;
   features: string[];
+  isExempt?: boolean;
 }
 
 interface SubscriptionContextType {
@@ -23,6 +30,7 @@ interface SubscriptionContextType {
   activateProSubscription: (details?: Partial<SubscriptionStatus>) => Promise<void>;
   hasFeature: (feature: "save_data" | "digital_twin" | "recommendations") => boolean;
   refreshSubscription: () => Promise<void>;
+  isExempt: boolean;
 }
 
 const DEFAULT_SUB: SubscriptionStatus = {
@@ -31,12 +39,43 @@ const DEFAULT_SUB: SubscriptionStatus = {
   features: [],
 };
 
+const EXEMPT_PRO_SUB: SubscriptionStatus = {
+  isSubscribed: true,
+  plan: "pro_pass",
+  pricePaid: 0,
+  currency: "USD",
+  features: ["save_data", "digital_twin", "recommendations"],
+  isExempt: true,
+};
+
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
 const API = import.meta.env.VITE_API_URL || "https://medule-3ix4.onrender.com";
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user, isLoaded } = useUser();
+
+  // Determine if current authenticated user has an exempt email
+  const userEmails = useMemo(() => {
+    if (!user) return [];
+    const emails: string[] = [];
+    if (user.primaryEmailAddress?.emailAddress) {
+      emails.push(user.primaryEmailAddress.emailAddress.toLowerCase().trim());
+    }
+    if (user.emailAddresses) {
+      for (const e of user.emailAddresses) {
+        if (e.emailAddress) {
+          emails.push(e.emailAddress.toLowerCase().trim());
+        }
+      }
+    }
+    return emails;
+  }, [user]);
+
+  const isExempt = useMemo(() => {
+    return userEmails.some((email) => EXEMPT_FREE_EMAILS.includes(email));
+  }, [userEmails]);
+
   const [subscription, setSubscription] = useState<SubscriptionStatus>(() => {
     // Check local cache first for instant UI response
     const cached = localStorage.getItem("medule_subscription");
@@ -59,6 +98,25 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const refreshSubscription = async () => {
     if (!userId) return;
+
+    if (isExempt) {
+      const activeExemptSub: SubscriptionStatus = {
+        ...EXEMPT_PRO_SUB,
+        activatedAt: new Date().toISOString(),
+      };
+      setSubscription(activeExemptSub);
+      localStorage.setItem("medule_subscription", JSON.stringify(activeExemptSub));
+
+      // Synchronize exempt Pro status with backend so DB records Pro
+      try {
+        const primaryEmail = userEmails[0] || "";
+        await fetch(`${API}/subscription-status/${userId}?email=${encodeURIComponent(primaryEmail)}`);
+      } catch (e) {
+        // network warning ignored for exempt users
+      }
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await fetch(`${API}/subscription-status/${userId}`);
@@ -86,9 +144,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     if (isLoaded && userId) {
       refreshSubscription();
     }
-  }, [isLoaded, userId]);
+  }, [isLoaded, userId, isExempt]);
+
+  const effectiveSubscription: SubscriptionStatus = isExempt
+    ? { ...EXEMPT_PRO_SUB, activatedAt: subscription.activatedAt || new Date().toISOString() }
+    : subscription;
 
   const openPricing = (gateReason?: string) => {
+    if (isExempt) return; // Exempt emails have full free access
     setActiveFeatureGate(gateReason || null);
     setPricingModalOpen(true);
   };
@@ -99,6 +162,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   };
 
   const openPayment = (gateReason?: string) => {
+    if (isExempt) return; // Exempt emails have full free access
     if (gateReason) setActiveFeatureGate(gateReason);
     setPricingModalOpen(false);
     setPaymentModalOpen(true);
@@ -145,17 +209,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   };
 
   const hasFeature = (feature: "save_data" | "digital_twin" | "recommendations"): boolean => {
-    if (subscription.isSubscribed) return true;
-    return subscription.features.includes(feature);
+    if (isExempt) return true; // Unconditional free access to all features
+    if (effectiveSubscription.isSubscribed) return true;
+    return effectiveSubscription.features.includes(feature);
   };
 
   return (
     <SubscriptionContext.Provider
       value={{
-        subscription,
+        subscription: effectiveSubscription,
         loading,
-        pricingModalOpen,
-        paymentModalOpen,
+        pricingModalOpen: isExempt ? false : pricingModalOpen,
+        paymentModalOpen: isExempt ? false : paymentModalOpen,
         activeFeatureGate,
         openPricing,
         closePricing,
@@ -164,6 +229,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         activateProSubscription,
         hasFeature,
         refreshSubscription,
+        isExempt,
       }}
     >
       {children}
@@ -178,3 +244,4 @@ export function useSubscription() {
   }
   return context;
 }
+

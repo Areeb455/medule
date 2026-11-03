@@ -208,7 +208,7 @@ export default function Recommendations() {
                     className="gradient-bg text-primary-foreground font-semibold rounded-xl text-xs px-6 py-3 shadow-lg flex items-center justify-center gap-2"
                   >
                     <Lock className="h-4 w-4" />
-                    <span>Unlock for $9.99 (Cards / UPI / NetBanking)</span>
+                    <span>Unlock Pro for $9.99 / ₹799 (Razorpay)</span>
                   </Button>
                 </div>
               </div>

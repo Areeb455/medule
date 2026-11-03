@@ -67,15 +67,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function PatientsPageAccess() {
   const { user } = useUser();
-  const userEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
+  const userEmails = [
+    user?.primaryEmailAddress?.emailAddress,
+    ...(user?.emailAddresses?.map((e) => e.emailAddress) || []),
+  ]
+    .filter(Boolean)
+    .map((e) => (e as string).toLowerCase().trim());
+
   const ALLOWED_EMAILS = [
     "yusufusmani910@gmail.com",
+    "usmaniyusuf69@gmail.com",
     "areebimam466@gmail.com",
     "omsh0401@gmail.com",
     "areebimam455@gmail.com"
   ];
 
-  if (!ALLOWED_EMAILS.includes(userEmail)) {
+  const hasAccess = userEmails.some((email) => ALLOWED_EMAILS.includes(email));
+
+  if (!hasAccess) {
     return <Navigate to="/dashboard" replace />;
   }
 

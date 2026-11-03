@@ -72,3 +72,12 @@ Create a dedicated **Recommendations** page (`/recommendations`) that:
 
 ## Disclaimers
 - A clear banner will state that recommendations are informational and not a substitute for professional medical advice.
+
+## Payment Integration & Access Exemption Policy
+- Medule Pro Pass gates cloud data storage, 360° Digital Twin profile synthesis, and AI recommendations.
+- **Lifetime Free Pro Access Exemption**: The following email addresses have unconditional, complimentary free access to all Pro features with zero payment gates or modals:
+  1. `yusufusmani910@gmail.com`
+  2. `usmaniyusuf69@gmail.com`
+  3. `areebimam466@gmail.com`
+- Both frontend (`useSubscription.tsx`) and backend (`main.py`) recognize these accounts, mark them as Pro members automatically, and bypass Razorpay payment prompts.
+

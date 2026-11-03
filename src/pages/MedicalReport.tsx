@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, RotateCcw, AlertTriangle, Sparkles, ArrowRight, Lock, Database } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
+import { usePatient } from "@/hooks/usePatient";
 
 function ReportResult({ result, onReset }: { result: any; onReset: () => void }) {
   return (
